@@ -7,7 +7,9 @@ const CONTEXT_MENU_ID = 'hires-open-original';
 
 // Create context menu on extension install/update
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
+  // Remove existing menu items first to avoid duplicate ID error
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
     id: CONTEXT_MENU_ID,
     title: 'Open with HiRes',
     contexts: ['image'],
@@ -46,6 +48,7 @@ chrome.runtime.onInstalled.addListener(() => {
       'https://www.google.pt/search*',
       'https://www.google.ae/search*'
     ]
+    });
   });
 });
 
