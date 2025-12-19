@@ -1,165 +1,116 @@
 /**
  * HiRes - Content Script
  * Extracts high-resolution image URLs from Google Images thumbnails
- * Updated December 2025 - Improved URL filtering based on Gemini's guidance
+ * Updated December 2025 - MutationObserver approach (no race conditions)
  */
 
 (function () {
   'use strict';
 
-  // Store the last right-clicked element and pre-observed high-res URL
+  // Store the captured high-res URL and last element
+  let capturedHighResUrl = null;
   let lastRightClickedElement = null;
-  let observedHighResUrl = null;
 
   /**
-   * Extract high-res URL from attribute value (used by MutationObserver)
-   * Now also captures URLs without extensions (modern CDNs often don't use them)
+   * Get best URL from metadata string - THE SECRET SAUCE
+   * Finds all URLs, filters out Google thumbnails, picks the longest one
    */
-  function extractUrlFromAttribute(attrValue) {
-    if (!attrValue) return null;
+  function getBestUrl(metadataString) {
+    if (!metadataString) return null;
 
-    // Decode escaped characters first
-    let decoded = attrValue;
+    // Decode escaped characters
+    let decoded = metadataString;
     try {
-      decoded = attrValue
+      decoded = metadataString
         .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
         .replace(/\\x([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
         .replace(/\\\//g, '/')
         .replace(/\\"/g, '"');
     } catch (e) {}
 
-    // Pattern 1: URLs with image extensions
-    const extPattern = /https?:\/\/[^"\[\]\s,\\<>]+\.(?:jpg|jpeg|png|webp|svg|bmp|gif|tiff?)(?:\?[^"\[\]\s,\\<>]*)?/gi;
+    // Find all potential image URLs
+    const urlPattern = /https?:\/\/[^"\[\]\s,\\<>]+\.(?:jpg|jpeg|png|webp|svg|gif|bmp)/gi;
+    const allUrls = decoded.match(urlPattern) || [];
 
-    // Pattern 2: URLs in array format ["url", width, height] - these are often the high-res ones
-    const arrayPattern = /\["(https?:\/\/[^"]+)",\s*(\d+),\s*(\d+)\]/g;
+    console.log('HiRes: Found', allUrls.length, 'total URLs in metadata');
 
-    const allUrls = [];
+    // Filter out Google's thumbnail servers
+    const candidates = allUrls.filter(url => {
+      const low = url.toLowerCase();
+      return !low.includes('gstatic.com') &&
+             !low.includes('googleusercontent.com') &&
+             !low.includes('encrypted-tbn') &&
+             !low.includes('ggpht.com') &&
+             !low.includes('googleapis.com');
+    });
 
-    // Collect URLs with extensions
-    const extMatches = decoded.match(extPattern) || [];
-    allUrls.push(...extMatches);
-
-    // Collect URLs from array format (with dimensions for sorting)
-    let match;
-    while ((match = arrayPattern.exec(decoded)) !== null) {
-      const url = match[1];
-      const width = parseInt(match[2]);
-      const height = parseInt(match[3]);
-      // Only add if it looks like a real image (reasonable dimensions)
-      if (width > 100 && height > 100) {
-        allUrls.push({ url, pixels: width * height });
-      }
-    }
-
-    // Log what we found for debugging
-    console.log('HiRes: Raw extraction found', allUrls.length, 'URLs');
-
-    // Filter out Google thumbnails
-    const candidates = allUrls
-      .map(item => typeof item === 'string' ? { url: item, pixels: 0 } : item)
-      .filter(item => {
-        const lowerUrl = item.url.toLowerCase();
-        const isGoogle = lowerUrl.includes('gstatic.com') ||
-                         lowerUrl.includes('googleusercontent.com') ||
-                         lowerUrl.includes('encrypted-tbn') ||
-                         lowerUrl.includes('ggpht.com') ||
-                         lowerUrl.includes('googleapis.com') ||
-                         lowerUrl.startsWith('data:');
-        return !isGoogle;
-      });
-
-    console.log('HiRes: After filtering:', candidates.length, 'non-Google URLs');
+    console.log('HiRes: After filtering:', candidates.length, 'external URLs');
 
     if (candidates.length === 0) return null;
 
-    // Sort: first by pixel count (if available), then by URL length
-    candidates.sort((a, b) => {
-      if (a.pixels !== b.pixels) return b.pixels - a.pixels;
-      return b.url.length - a.url.length;
-    });
+    // SECRET: The longest URL is almost always the original source
+    candidates.sort((a, b) => b.length - a.length);
 
     // Log top candidates
-    console.log('HiRes: Top candidates:');
-    candidates.slice(0, 3).forEach((c, i) => {
-      console.log(`  ${i + 1}. [${c.pixels}px, ${c.url.length}chars] ${c.url.substring(0, 60)}...`);
+    console.log('HiRes: Top candidates by length:');
+    candidates.slice(0, 3).forEach((url, i) => {
+      console.log(`  ${i + 1}. [${url.length} chars] ${url.substring(0, 70)}...`);
     });
 
-    return candidates[0].url;
+    try {
+      return decodeURIComponent(candidates[0]);
+    } catch (e) {
+      return candidates[0];
+    }
   }
 
   /**
-   * Check existing attributes for high-res URL (before waiting for changes)
+   * Right-click handler - sets up MutationObserver and triggers lazy-load
+   * KEY: Does NOT wait/block - observer captures URL asynchronously
    */
-  function checkExistingAttributes(container) {
-    const attrsToCheck = ['data-i', 'data-ow', 'data-it'];
-    for (const attr of attrsToCheck) {
+  document.addEventListener('contextmenu', (event) => {
+    const target = event.target;
+    console.log('HiRes: Right-click captured on:', target.tagName);
+
+    // Reset captured URL
+    capturedHighResUrl = null;
+    lastRightClickedElement = target;
+
+    // Find the thumbnail container
+    const container = target.closest('div[data-it], div[data-ow], div[data-i], [jsname], a[href*="/imgres"]');
+    if (!container) {
+      console.log('HiRes: No thumbnail container found');
+      return;
+    }
+
+    // STEP 1: Check if URL already exists in attributes
+    const attrs = ['data-i', 'data-ow', 'data-it'];
+    for (const attr of attrs) {
       if (container.hasAttribute(attr)) {
-        const value = container.getAttribute(attr);
-        // Don't reject based on containing gstatic - the attribute often has BOTH
-        // gstatic URLs and the real URL. Let extractUrlFromAttribute filter them.
-        if (value && value.includes('http')) {
-          console.log('HiRes: Checking attribute', attr, '(length:', value.length + ')');
-          const url = extractUrlFromAttribute(value);
+        const val = container.getAttribute(attr);
+        if (val && val.includes('http') && !val.includes('base64')) {
+          const url = getBestUrl(val);
           if (url) {
-            console.log('HiRes: Found high-res URL in', attr);
-            return url;
+            capturedHighResUrl = url;
+            console.log('HiRes: ✅ URL already available:', url);
+            return;
           }
         }
       }
     }
-    return null;
-  }
 
-  /**
-   * Capture the element when user right-clicks
-   * SECRET WEAPON: Use MutationObserver to wait for Google to populate high-res URL
-   */
-  document.addEventListener('contextmenu', async (event) => {
-    const target = event.target;
-    console.log('HiRes: Captured right-click on:', target.tagName);
-
-    // Reset observed URL
-    observedHighResUrl = null;
-
-    // Find the thumbnail container that Google attaches metadata to
-    const thumbnail = target.closest('div[data-it], div[data-ow], div[data-i], [jsname], a[href*="/imgres"]');
-    if (!thumbnail) {
-      console.log('HiRes: No thumbnail container found');
-      lastRightClickedElement = target;
-      return;
-    }
-
-    // Find the actual thumbnail image
-    const thumbnailImg = target.tagName === 'IMG' ? target : thumbnail.querySelector('img') || target;
-
-    // STEP 1: Check if high-res URL already exists in attributes
-    const existingUrl = checkExistingAttributes(thumbnail);
-    if (existingUrl) {
-      console.log('HiRes: ✅ High-res URL already available:', existingUrl);
-      observedHighResUrl = existingUrl;
-      lastRightClickedElement = target;
-      return;
-    }
-
-    // STEP 2: Set up MutationObserver BEFORE triggering events
-    let observerResolved = false;
+    // STEP 2: Set up MutationObserver to watch for lazy-loaded data
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
-        if (mutation.type === 'attributes') {
-          const attrName = mutation.attributeName;
-          const attrValue = mutation.target.getAttribute(attrName);
+        if (mutation.attributeName === 'data-i' || mutation.attributeName === 'data-ow') {
+          const val = mutation.target.getAttribute(mutation.attributeName);
 
-          // Check relevant attributes - don't filter by gstatic here, let extractUrlFromAttribute handle it
-          if ((attrName === 'data-i' || attrName === 'data-ow' || attrName === 'data-it') &&
-              attrValue && attrValue.includes('http')) {
-
-            console.log('HiRes: Observer detected change in', attrName);
-            const url = extractUrlFromAttribute(attrValue);
-            if (url) {
-              console.log('HiRes: ✅ Observer caught high-res URL:', url);
-              observedHighResUrl = url;
-              observerResolved = true;
+          // Only act if the data contains a real external link (not base64/gstatic)
+          if (val && val.includes('http') && !val.includes('gstatic.com') && !val.includes('base64')) {
+            const highRes = getBestUrl(val);
+            if (highRes) {
+              capturedHighResUrl = highRes;
+              console.log('HiRes: ✅ Observer captured URL:', highRes);
               observer.disconnect();
               return;
             }
@@ -168,77 +119,47 @@
       }
     });
 
-    // Start watching the thumbnail and its subtree for attribute changes
-    observer.observe(thumbnail, {
-      attributes: true,
-      subtree: true,
-      attributeFilter: ['data-i', 'data-ow', 'data-it', 'data-lpage', 'data-ou']
-    });
+    // Start observing the container
+    observer.observe(container, { attributes: true, subtree: true });
 
-    // Also observe parent elements
-    let parent = thumbnail.parentElement;
-    for (let i = 0; i < 5 && parent; i++) {
+    // Also observe parent elements (Google sometimes updates parents)
+    let parent = container.parentElement;
+    for (let i = 0; i < 3 && parent; i++) {
       observer.observe(parent, { attributes: true, subtree: true });
       parent = parent.parentElement;
     }
 
-    // STEP 3: Trigger Google's "Wake Up" events
-    const rect = thumbnailImg.getBoundingClientRect();
-    const eventProps = {
+    // STEP 3: Trigger Google's "Wake Up" events to force lazy-load
+    const opts = {
       bubbles: true,
       cancelable: true,
-      view: window,
-      clientX: rect.left + rect.width / 2,
-      clientY: rect.top + rect.height / 2,
-      button: 0,
-      buttons: 1
+      clientX: event.clientX,
+      clientY: event.clientY
     };
 
-    // Fire pointerdown first (modern browsers expect this order)
-    thumbnail.dispatchEvent(new PointerEvent('pointerdown', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-    thumbnail.dispatchEvent(new MouseEvent('mousedown', eventProps));
+    container.dispatchEvent(new PointerEvent('pointerdown', { ...opts, isPrimary: true }));
+    container.dispatchEvent(new MouseEvent('mousedown', opts));
 
-    // Also on the image itself
-    thumbnailImg.dispatchEvent(new PointerEvent('pointerdown', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-    thumbnailImg.dispatchEvent(new MouseEvent('mousedown', eventProps));
-
-    // STEP 4: Wait for observer or timeout (1 second for slow connections)
-    await new Promise(resolve => {
-      const checkInterval = setInterval(() => {
-        if (observerResolved) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 50);
-
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (!observerResolved) {
-          console.log('HiRes: Observer timeout - checking attributes one more time');
-          // Final check before giving up
-          const finalUrl = checkExistingAttributes(thumbnail);
-          if (finalUrl) {
-            observedHighResUrl = finalUrl;
-            console.log('HiRes: ✅ Found URL on final check:', finalUrl);
+    // STEP 4: Safety timeout - disconnect after 1.5 seconds
+    setTimeout(() => {
+      observer.disconnect();
+      // Final check if we still don't have a URL
+      if (!capturedHighResUrl) {
+        for (const attr of attrs) {
+          if (container.hasAttribute(attr)) {
+            const val = container.getAttribute(attr);
+            if (val && val.includes('http')) {
+              const url = getBestUrl(val);
+              if (url) {
+                capturedHighResUrl = url;
+                console.log('HiRes: ✅ URL found on final check:', url);
+                break;
+              }
+            }
           }
         }
-        observer.disconnect();
-        resolve();
-      }, 1000);
-    });
-
-    // Complete the interaction cycle
-    thumbnail.dispatchEvent(new PointerEvent('pointerup', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-    thumbnail.dispatchEvent(new MouseEvent('mouseup', eventProps));
-
-    // Store the element
-    lastRightClickedElement = target;
-
-    if (observedHighResUrl) {
-      console.log('HiRes: Metadata activation complete - URL pre-captured:', observedHighResUrl);
-    } else {
-      console.log('HiRes: Metadata activation complete - will extract on demand');
-    }
+      }
+    }, 1500);
   }, true);
 
   /**
@@ -739,15 +660,15 @@
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'getOriginalUrl') {
       console.log('HiRes: Received request for original URL');
-      console.log('HiRes: Last right-clicked element:', lastRightClickedElement?.tagName);
+      console.log('HiRes: Captured URL:', capturedHighResUrl);
 
-      // PRIORITY 1: Use the pre-observed URL from MutationObserver (most reliable!)
-      if (observedHighResUrl) {
-        console.log('HiRes: Using pre-observed URL from MutationObserver:', observedHighResUrl);
-        const finalUrl = stripSizingParameters(observedHighResUrl);
+      // PRIORITY 1: Use the captured URL from MutationObserver (most reliable!)
+      if (capturedHighResUrl) {
+        console.log('HiRes: ✅ Using captured high-res URL:', capturedHighResUrl);
+        const finalUrl = stripSizingParameters(capturedHighResUrl);
         sendResponse({ originalUrl: finalUrl });
         // Clear for next use
-        observedHighResUrl = null;
+        capturedHighResUrl = null;
         return true;
       }
 
