@@ -154,20 +154,34 @@
     });
 
     const result = await response.json();
+    console.log('Claid API response:', result);
 
-    if (result.error) {
-      const errMsg = result.error.message || '';
-      // Handle common errors with user-friendly messages
+    // Handle errors
+    if (!response.ok || result.error) {
+      const errMsg = result.error?.message || result.message || '';
       if (errMsg.includes('credit') || errMsg.includes('limit') || response.status === 402) {
         throw new Error('Out of credits! Visit claid.ai to add more.');
       }
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
         throw new Error('Invalid API key. Check your Claid.ai key.');
       }
-      throw new Error(errMsg || 'Claid.ai upscaling failed');
+      throw new Error(errMsg || `Claid.ai error (${response.status})`);
     }
 
-    return { url: result.data.output.tmp_url, isDemo: false };
+    // Extract URL from response - handle different response formats
+    const outputUrl = result.data?.output?.tmp_url ||
+                      result.data?.output?.url ||
+                      result.output?.tmp_url ||
+                      result.output?.url ||
+                      result.tmp_url ||
+                      result.url;
+
+    if (!outputUrl) {
+      console.error('Unexpected API response structure:', result);
+      throw new Error('Unexpected API response format');
+    }
+
+    return { url: outputUrl, isDemo: false };
   }
 
   /**
