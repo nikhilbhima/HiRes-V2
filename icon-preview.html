@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HiRes Icon Preview</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3rem;
+      font-family: system-ui, sans-serif;
+      color: #fff;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 2rem;
+      letter-spacing: 0.1em;
+      color: #00ff88;
+    }
+
+    .icon-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 3rem;
+    }
+
+    .icon-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .icon-container span {
+      font-size: 0.875rem;
+      color: #666;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .icon-box {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid #333;
+    }
+
+    .instructions {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #111;
+      border-radius: 8px;
+      border: 1px solid #333;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .instructions p {
+      color: #888;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+
+    .instructions code {
+      background: #222;
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
+      color: #00ff88;
+    }
+  </style>
+</head>
+<body>
+  <h1>HIRES ICONS</h1>
+
+  <div class="icon-row">
+    <!-- 16x16 -->
+    <div class="icon-container">
+      <div class="icon-box">
+        <svg width="16" height="16" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad16" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00ff88"/>
+              <stop offset="100%" style="stop-color:#00ccff"/>
+            </linearGradient>
+          </defs>
+          <rect width="128" height="128" rx="28" fill="#0d0d0d"/>
+          <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="url(#grad16)" stroke-width="4"/>
+          <!-- Stylized HR -->
+          <path d="M32 36V92M32 64H52M52 36V92" stroke="url(#grad16)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M68 36V92M68 36H88C96 36 100 44 100 52C100 60 96 64 88 64H68" stroke="url(#grad16)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M80 64L100 92" stroke="url(#grad16)" stroke-width="10" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span>16×16</span>
+    </div>
+
+    <!-- 48x48 -->
+    <div class="icon-container">
+      <div class="icon-box">
+        <svg width="48" height="48" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad48" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00ff88"/>
+              <stop offset="100%" style="stop-color:#00ccff"/>
+            </linearGradient>
+          </defs>
+          <rect width="128" height="128" rx="28" fill="#0d0d0d"/>
+          <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="url(#grad48)" stroke-width="4"/>
+          <!-- Stylized HR -->
+          <path d="M32 36V92M32 64H52M52 36V92" stroke="url(#grad48)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M68 36V92M68 36H88C96 36 100 44 100 52C100 60 96 64 88 64H68" stroke="url(#grad48)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M80 64L100 92" stroke="url(#grad48)" stroke-width="10" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span>48×48</span>
+    </div>
+
+    <!-- 128x128 -->
+    <div class="icon-container">
+      <div class="icon-box">
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="grad128" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00ff88"/>
+              <stop offset="100%" style="stop-color:#00ccff"/>
+            </linearGradient>
+          </defs>
+          <rect width="128" height="128" rx="28" fill="#0d0d0d"/>
+          <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="url(#grad128)" stroke-width="4"/>
+          <!-- Stylized HR -->
+          <path d="M32 36V92M32 64H52M52 36V92" stroke="url(#grad128)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M68 36V92M68 36H88C96 36 100 44 100 52C100 60 96 64 88 64H68" stroke="url(#grad128)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M80 64L100 92" stroke="url(#grad128)" stroke-width="10" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span>128×128</span>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <p>Right-click each icon → <code>Save image as...</code> to export as PNG, or use a screenshot tool to capture each size.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hiresGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ff88"/>
+      <stop offset="100%" style="stop-color:#00ccff"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="128" height="128" rx="28" fill="#0d0d0d"/>
+  <!-- Border -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="url(#hiresGrad)" stroke-width="4"/>
+  <!-- H letter -->
+  <path d="M32 36V92M32 64H52M52 36V92" stroke="url(#hiresGrad)" stroke-width="10" stroke-linecap="round"/>
+  <!-- R letter -->
+  <path d="M68 36V92M68 36H88C96 36 100 44 100 52C100 60 96 64 88 64H68" stroke="url(#hiresGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 64L100 92" stroke="url(#hiresGrad)" stroke-width="10" stroke-linecap="round"/>
+</svg>
