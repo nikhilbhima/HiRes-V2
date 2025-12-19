@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "referer", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "*",
+      "resourceTypes": ["main_frame", "image"],
+      "initiatorDomains": [
+        "google.com",
+        "www.google.com",
+        "google.co.uk",
+        "google.co.jp",
+        "google.co.in",
+        "google.de",
+        "google.fr",
+        "google.es",
+        "google.it",
+        "google.ca",
+        "google.com.au",
+        "google.com.br"
+      ]
+    }
+  }
+]
