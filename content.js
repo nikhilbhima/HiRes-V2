@@ -1,10 +1,21 @@
 /**
  * HiRes - Content Script
- * "Ghost Click" approach with precision selectors (December 2025)
+ * Extracts high-resolution image URLs from Google Images using "Ghost Click" approach
+ *
+ * Strategy: Programmatically trigger Google's preview panel (hidden via CSS),
+ * wait for the high-res image to load, extract the URL, then cleanup.
+ *
+ * @see README.md for known issues and contributing guidelines
  */
 
 (function () {
   'use strict';
+
+  // Set to true to enable debug logging
+  const DEBUG = false;
+
+  const log = (...args) => DEBUG && console.log('[HiRes]', ...args);
+  const logError = (...args) => console.error('[HiRes]', ...args);
 
   let lastRightClickedElement = null;
 
@@ -117,7 +128,7 @@
         // Check if timeout
         if (Date.now() - startTime > maxWait) {
           clearInterval(checkInterval);
-          console.log('HiRes: ❌ Timeout waiting for preview image');
+          log('Timeout waiting for preview image');
           resolve(null);
           return;
         }
@@ -129,7 +140,7 @@
             const src = img.src || img.getAttribute('data-src');
             if (isValidHighResUrl(src)) {
               clearInterval(checkInterval);
-              console.log('HiRes: ✅ Found via selector', selector, ':', src.substring(0, 60));
+              log('Found via selector', selector);
               resolve(src);
               return;
             }
@@ -154,7 +165,7 @@
 
         if (bestUrl && bestWidth > 600) {
           clearInterval(checkInterval);
-          console.log('HiRes: ✅ Found large image [', bestWidth, 'px]:', bestUrl.substring(0, 60));
+          log('Found large image', bestWidth, 'px');
           resolve(bestUrl);
           return;
         }
@@ -168,7 +179,7 @@
             if (imgurl && isValidHighResUrl(imgurl)) {
               clearInterval(checkInterval);
               const decoded = decodeURIComponent(imgurl);
-              console.log('HiRes: ✅ Found via imgurl link:', decoded.substring(0, 60));
+              log('Found via imgurl link');
               resolve(decoded);
               return;
             }
@@ -183,7 +194,7 @@
    * Main Ghost Click extraction
    */
   async function ghostClickAndExtract(thumbnailElement) {
-    console.log('HiRes: Starting Ghost Click extraction...');
+    log('Starting extraction...');
 
     // Find clickable element
     const clickable = thumbnailElement.closest('a') ||
@@ -192,17 +203,17 @@
                       thumbnailElement;
 
     if (!clickable) {
-      console.log('HiRes: No clickable element found');
+      log('No clickable element found');
       return null;
     }
 
     // Step 1: Inject hiding CSS
     const hideStyle = injectHideStyle();
-    console.log('HiRes: Preview panel hidden');
+    log('Preview panel hidden');
 
     try {
       // Step 2: Trigger preview with full interaction sequence
-      console.log('HiRes: Triggering preview...');
+      log('Triggering preview...');
       triggerGooglePreview(clickable);
 
       // Step 3: Wait for high-res image to appear
@@ -217,7 +228,7 @@
     } finally {
       // Step 5: Always cleanup
       removeHideStyle(hideStyle);
-      console.log('HiRes: Cleanup complete');
+      log('Cleanup complete');
     }
   }
 
@@ -237,7 +248,7 @@
    */
   document.addEventListener('contextmenu', (event) => {
     lastRightClickedElement = event.target;
-    console.log('HiRes: Right-click on:', event.target.tagName);
+    log('Right-click captured');
   }, true);
 
   /**
@@ -245,7 +256,7 @@
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'getOriginalUrl') {
-      console.log('HiRes: Received request');
+      log('Received extraction request');
 
       let targetElement = lastRightClickedElement;
 
@@ -264,7 +275,7 @@
       }
 
       if (!targetElement) {
-        console.log('HiRes: No target element');
+        log('No target element');
         sendResponse({ originalUrl: null });
         return true;
       }
@@ -276,14 +287,14 @@
 
           if (highResUrl) {
             const finalUrl = stripSizingParameters(highResUrl);
-            console.log('HiRes: ✅ SUCCESS:', finalUrl);
+            log('Success:', finalUrl.substring(0, 50) + '...');
             sendResponse({ originalUrl: finalUrl });
           } else {
-            console.log('HiRes: ❌ FAILED - No URL found');
+            log('Failed - No URL found');
             sendResponse({ originalUrl: null });
           }
         } catch (error) {
-          console.error('HiRes: Error:', error);
+          logError('Extraction error:', error.message);
           sendResponse({ originalUrl: null });
         }
       })();
@@ -293,5 +304,5 @@
     return false;
   });
 
-  console.log('HiRes: Loaded (Precision Selectors - Dec 2025)');
+  log('Content script loaded');
 })();

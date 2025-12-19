@@ -1,2 +1,17 @@
+# OS files
 .DS_Store
+
+# Chrome extension metadata
 _metadata/
+
+# Development files
+icon-preview.html
+icons/icon.svg
+
+# Editor/IDE settings
+.claude/
+.vscode/
+.idea/
+
+# Node modules (if added later)
+node_modules/
