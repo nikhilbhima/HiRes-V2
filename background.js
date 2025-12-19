@@ -95,6 +95,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         files: ['content.js']
       });
 
+      // Wait for script to initialize
+      await new Promise(r => setTimeout(r, 100));
+
       // Retry after injection
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'getOriginalUrl',
