@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HiRes — Upscale Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #08080a;
+      --bg-panel: #0d0d10;
+      --bg-elevated: #141418;
+      --bg-hover: #1a1a1f;
+      --border: #252528;
+      --border-subtle: #1c1c1f;
+      --text-primary: #f0f0f2;
+      --text-secondary: #8a8a8f;
+      --text-tertiary: #5a5a5f;
+      --accent: #00e5cc;
+      --accent-dim: #00b3a0;
+      --accent-glow: rgba(0, 229, 204, 0.15);
+      --warning: #ffb347;
+      --error: #ff6b6b;
+      --success: #4ade80;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Instrument Sans', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Layout */
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-panel);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--bg-deep);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* Main content */
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border-subtle);
+      overflow: hidden;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    .panel-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-secondary);
+    }
+
+    .panel-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-source {
+      background: rgba(255, 179, 71, 0.12);
+      color: var(--warning);
+      border: 1px solid rgba(255, 179, 71, 0.25);
+    }
+
+    .badge-enhanced {
+      background: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid rgba(0, 229, 204, 0.25);
+    }
+
+    /* Image viewport */
+    .viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      position: relative;
+      background:
+        radial-gradient(ellipse at center, var(--bg-elevated) 0%, var(--bg-panel) 70%);
+    }
+
+    /* Scanline effect */
+    .viewport::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    .image-frame {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .image-frame img {
+      max-width: 100%;
+      max-height: calc(100vh - 280px);
+      object-fit: contain;
+      border-radius: 4px;
+      opacity: 0;
+      transform: scale(0.98);
+      animation: imageReveal 0.6s ease-out forwards;
+    }
+
+    @keyframes imageReveal {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Placeholder states */
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-tertiary);
+    }
+
+    .placeholder-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--bg-elevated);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      opacity: 0.6;
+    }
+
+    .placeholder-text {
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Loading state */
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .loading-state.active {
+      display: flex;
+    }
+
+    .scanner {
+      width: 120px;
+      height: 120px;
+      position: relative;
+    }
+
+    .scanner-ring {
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+    }
+
+    .scanner-ring::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border: 2px solid transparent;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: scanRotate 1.5s linear infinite;
+    }
+
+    @keyframes scanRotate {
+      to { transform: rotate(360deg); }
+    }
+
+    .scanner-core {
+      position: absolute;
+      inset: 20px;
+      background: var(--accent-glow);
+      border-radius: 50%;
+      animation: corePulse 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes corePulse {
+      from { transform: scale(0.9); opacity: 0.5; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .scanner-label {
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-panel);
+      padding: 4px 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .loading-info {
+      text-align: center;
+    }
+
+    .loading-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .loading-detail {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    /* Panel footer */
+    .panel-footer {
+      padding: 20px 28px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      flex-shrink: 0;
+    }
+
+    .image-meta {
+      display: flex;
+      gap: 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meta-label {
+      color: var(--text-tertiary);
+    }
+
+    .meta-value {
+      color: var(--text-secondary);
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .scale-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scale-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      min-width: 80px;
+    }
+
+    .scale-options {
+      display: flex;
+      gap: 8px;
+    }
+
+    .scale-btn {
+      width: 48px;
+      height: 36px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .scale-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--text-tertiary);
+    }
+
+    .scale-btn.active {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .action-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      height: 44px;
+      padding: 0 24px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: var(--bg-deep);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .btn-icon {
+      font-size: 16px;
+    }
+
+    /* Config notice */
+    .config-notice {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255, 179, 71, 0.06);
+      border: 1px solid rgba(255, 179, 71, 0.15);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+
+    .config-notice strong {
+      color: var(--warning);
+      font-weight: 500;
+    }
+
+    .config-link {
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .config-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Error state */
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .error-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+    }
+
+    .error-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--error);
+    }
+
+    .error-detail {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 280px;
+      word-break: break-word;
+    }
+
+    /* Success enhancements */
+    .success-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .improvement-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 4px;
+      color: var(--success);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+
+      .viewport {
+        padding: 20px;
+      }
+
+      .image-frame img {
+        max-height: calc(50vh - 180px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="logo">HR</div>
+        <div class="brand-text">
+          <span class="brand-name">HiRes</span>
+          <span class="brand-sub">Upscale Studio</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <!-- Source Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-label">
+            <div class="panel-icon">📷</div>
+            <span class="panel-title">Source Image</span>
+          </div>
+          <span class="panel-badge badge-source">Original</span>
+        </div>
+
+        <div class="viewport" id="sourceViewport">
+          <div class="placeholder" id="sourcePlaceholder">
+            <div class="placeholder-icon">🖼</div>
+            <div class="placeholder-text">Loading image...</div>
+          </div>
+          <div class="image-frame" id="sourceFrame" style="display: none;"></div>
+        </div>
+
+        <div class="panel-footer" id="sourceFooter" style="display: none;">
+          <div class="image-meta">
+            <div class="meta-item">
+              <span class="meta-label">Dimensions</span>
+              <span class="meta-value" id="sourceDimensions">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Format</span>
+              <span class="meta-value" id="sourceFormat">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-label">
+            <div class="panel-icon">✨</div>
+            <span class="panel-title">Enhanced Output</span>
+          </div>
+          <span class="panel-badge badge-enhanced">Upscaled</span>
+        </div>
+
+        <div class="viewport" id="outputViewport">
+          <div class="placeholder" id="outputPlaceholder">
+            <div class="placeholder-icon">⚡</div>
+            <div class="placeholder-text">
+              Select scale factor and<br>click "Process Image"
+            </div>
+          </div>
+
+          <div class="loading-state" id="loadingState">
+            <div class="scanner">
+              <div class="scanner-ring"></div>
+              <div class="scanner-core"></div>
+              <div class="scanner-label">Processing</div>
+            </div>
+            <div class="loading-info">
+              <div class="loading-title">Enhancing image...</div>
+              <div class="loading-detail">Using Real-ESRGAN neural network</div>
+            </div>
+          </div>
+
+          <div class="image-frame" id="outputFrame" style="display: none;"></div>
+        </div>
+
+        <div class="panel-footer">
+          <div class="controls">
+            <div class="scale-controls">
+              <span class="scale-label">Scale Factor</span>
+              <div class="scale-options">
+                <button class="scale-btn active" data-scale="2">2×</button>
+                <button class="scale-btn" data-scale="4">4×</button>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn btn-primary" id="processBtn" disabled>
+                <span class="btn-icon">⚡</span>
+                <span>Process Image</span>
+              </button>
+              <button class="btn btn-secondary" id="downloadBtn" style="display: none;">
+                <span class="btn-icon">↓</span>
+                <span>Download</span>
+              </button>
+            </div>
+
+            <div class="config-notice" id="configNotice">
+              <strong>Demo Mode:</strong> No API configured.
+              <a class="config-link" id="configureLink">Configure API key</a> for real AI upscaling.
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="upscale.js"></script>
+</body>
+</html>

@@ -9,52 +9,33 @@ const CONTEXT_MENU_ID = 'hires-open-original';
 chrome.runtime.onInstalled.addListener(() => {
   // Remove existing menu items first to avoid duplicate ID error
   chrome.contextMenus.removeAll(() => {
+    // 1. Open Original
     chrome.contextMenus.create({
-    id: CONTEXT_MENU_ID,
-    title: 'Open with HiRes',
-    contexts: ['image'],
-    documentUrlPatterns: [
-      'https://www.google.com/search*',
-      'https://www.google.co.uk/search*',
-      'https://www.google.co.jp/search*',
-      'https://www.google.co.in/search*',
-      'https://www.google.co.kr/search*',
-      'https://www.google.co.nz/search*',
-      'https://www.google.co.za/search*',
-      'https://www.google.co.th/search*',
-      'https://www.google.co.id/search*',
-      'https://www.google.com.au/search*',
-      'https://www.google.com.br/search*',
-      'https://www.google.com.mx/search*',
-      'https://www.google.com.ar/search*',
-      'https://www.google.com.sg/search*',
-      'https://www.google.com.hk/search*',
-      'https://www.google.com.tr/search*',
-      'https://www.google.com.ph/search*',
-      'https://www.google.com.vn/search*',
-      'https://www.google.com.my/search*',
-      'https://www.google.ca/search*',
-      'https://www.google.de/search*',
-      'https://www.google.fr/search*',
-      'https://www.google.es/search*',
-      'https://www.google.it/search*',
-      'https://www.google.ru/search*',
-      'https://www.google.nl/search*',
-      'https://www.google.pl/search*',
-      'https://www.google.se/search*',
-      'https://www.google.ch/search*',
-      'https://www.google.at/search*',
-      'https://www.google.be/search*',
-      'https://www.google.pt/search*',
-      'https://www.google.ae/search*'
-    ]
+      id: CONTEXT_MENU_ID,
+      title: 'Open with HiRes',
+      contexts: ['image'],
+      documentUrlPatterns: [
+        'https://www.google.com/*', 'https://google.com/*',
+        'https://www.google.co.uk/*', 'https://www.google.co.jp/*',
+        'https://www.google.ca/*', 'https://www.google.de/*',
+        'http://*/*', 'https://*/*' // Enable everywhere for fallback to thumbnail
+      ]
+    });
+
+    // 2. AI Upscale (New)
+    chrome.contextMenus.create({
+      id: 'hires-upscale',
+      title: 'Upscale with HiRes',
+      contexts: ['image'],
+      documentUrlPatterns: ['<all_urls>'] // Allow upscaling anywhere
     });
   });
 });
 
 // Handle context menu click
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== CONTEXT_MENU_ID) return;
+  const action = info.menuItemId;
+  if (action !== CONTEXT_MENU_ID && action !== 'hires-upscale') return;
 
   const thumbnailUrl = info.srcUrl;
 
@@ -63,10 +44,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
+  // --- HELPER: Logic to decide what to do with the final URL ---
+  const handleFinalUrl = (url) => {
+    if (action === 'hires-upscale') {
+      // Open Upscale Studio
+      chrome.tabs.create({ 
+        url: chrome.runtime.getURL(`upscale.html?img=${encodeURIComponent(url)}`) 
+      });
+    } else {
+      // Just Open Image (Original HiRes behavior)
+      chrome.tabs.create({ url: url });
+    }
+  };
+
   // Check if this is a Google Images page (has tbm=isch in URL)
   if (!tab.url || !isGoogleImagesUrl(tab.url)) {
-    // Not on Google Images, just open the thumbnail URL
-    chrome.tabs.create({ url: thumbnailUrl });
+    // Not on Google Images? directly upscale/open the thumbnail
+    handleFinalUrl(thumbnailUrl);
     return;
   }
 
@@ -78,11 +72,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
 
     if (response && response.originalUrl) {
-      chrome.tabs.create({ url: response.originalUrl });
+      handleFinalUrl(response.originalUrl);
     } else {
-      // Fallback: open thumbnail URL
-      console.warn('HiRes: Original URL not found, opening thumbnail');
-      chrome.tabs.create({ url: thumbnailUrl });
+      // Fallback: use thumbnail URL
+      console.warn('HiRes: Original URL not found, using thumbnail');
+      handleFinalUrl(thumbnailUrl);
     }
   } catch (error) {
     // Content script not ready or error occurred
@@ -105,13 +99,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       });
 
       if (response && response.originalUrl) {
-        chrome.tabs.create({ url: response.originalUrl });
+        handleFinalUrl(response.originalUrl);
       } else {
-        chrome.tabs.create({ url: thumbnailUrl });
+        handleFinalUrl(thumbnailUrl);
       }
     } catch (retryError) {
       console.error('HiRes: Retry failed:', retryError);
-      chrome.tabs.create({ url: thumbnailUrl });
+      handleFinalUrl(thumbnailUrl);
     }
   }
 });
