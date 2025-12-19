@@ -42,6 +42,27 @@
   }
 
   /**
+   * Check existing attributes for high-res URL (before waiting for changes)
+   */
+  function checkExistingAttributes(container) {
+    const attrsToCheck = ['data-i', 'data-ow', 'data-it'];
+    for (const attr of attrsToCheck) {
+      if (container.hasAttribute(attr)) {
+        const value = container.getAttribute(attr);
+        // Only accept if it contains http and NOT base64/gstatic
+        if (value && value.includes('http') && !value.includes('gstatic.com') && !value.includes('base64')) {
+          const url = extractUrlFromAttribute(value);
+          if (url) {
+            console.log('HiRes: Found existing high-res URL in', attr);
+            return url;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Capture the element when user right-clicks
    * SECRET WEAPON: Use MutationObserver to wait for Google to populate high-res URL
    */
@@ -52,109 +73,119 @@
     // Reset observed URL
     observedHighResUrl = null;
 
-    // Find the actual thumbnail image
-    const thumbnailImg = target.tagName === 'IMG' ? target : target.querySelector('img') || target;
-
-    // Find the container that Google attaches metadata to
-    const metadataContainer = target.closest('div[data-it], div[data-ow], div[data-i], [jsname], a[href*="/imgres"]') || target;
-
-    // Find all potential containers to observe (walk up the DOM)
-    const containersToObserve = [];
-    let el = target;
-    for (let i = 0; i < 10 && el; i++) {
-      if (el.nodeType === 1) containersToObserve.push(el);
-      el = el.parentElement;
+    // Find the thumbnail container that Google attaches metadata to
+    const thumbnail = target.closest('div[data-it], div[data-ow], div[data-i], [jsname], a[href*="/imgres"]');
+    if (!thumbnail) {
+      console.log('HiRes: No thumbnail container found');
+      lastRightClickedElement = target;
+      return;
     }
 
-    // Create MutationObserver to watch for attribute changes
+    // Find the actual thumbnail image
+    const thumbnailImg = target.tagName === 'IMG' ? target : thumbnail.querySelector('img') || target;
+
+    // STEP 1: Check if high-res URL already exists in attributes
+    const existingUrl = checkExistingAttributes(thumbnail);
+    if (existingUrl) {
+      console.log('HiRes: ✅ High-res URL already available:', existingUrl);
+      observedHighResUrl = existingUrl;
+      lastRightClickedElement = target;
+      return;
+    }
+
+    // STEP 2: Set up MutationObserver BEFORE triggering events
     let observerResolved = false;
-    const observerPromise = new Promise((resolve) => {
-      const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (mutation.type === 'attributes') {
-            const attrName = mutation.attributeName;
-            const attrValue = mutation.target.getAttribute(attrName);
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes') {
+          const attrName = mutation.attributeName;
+          const attrValue = mutation.target.getAttribute(attrName);
 
-            // Check if this attribute now contains a high-res URL
-            if (attrName === 'data-i' || attrName === 'data-ow' || attrName === 'data-it') {
-              console.log('HiRes: Detected attribute change:', attrName);
+          // Check if this attribute now contains a real URL (not base64/gstatic)
+          if ((attrName === 'data-i' || attrName === 'data-ow' || attrName === 'data-it') &&
+              attrValue && attrValue.includes('http') && !attrValue.includes('gstatic.com')) {
 
-              const url = extractUrlFromAttribute(attrValue);
-              if (url) {
-                console.log('HiRes: MutationObserver found high-res URL:', url);
-                observedHighResUrl = url;
-                observerResolved = true;
-                observer.disconnect();
-                resolve(url);
-                return;
-              }
+            const url = extractUrlFromAttribute(attrValue);
+            if (url) {
+              console.log('HiRes: ✅ Observer caught high-res URL:', url);
+              observedHighResUrl = url;
+              observerResolved = true;
+              observer.disconnect();
+              return;
             }
           }
         }
-      });
-
-      // Observe all containers for attribute changes
-      containersToObserve.forEach(container => {
-        observer.observe(container, {
-          attributes: true,
-          attributeFilter: ['data-i', 'data-ow', 'data-it', 'data-lpage', 'data-ou'],
-          subtree: true
-        });
-      });
-
-      // Timeout after 500ms - fail gracefully
-      setTimeout(() => {
-        if (!observerResolved) {
-          console.log('HiRes: MutationObserver timeout - no high-res URL detected');
-          observer.disconnect();
-          resolve(null);
-        }
-      }, 500);
+      }
     });
 
-    // Get bounding rect for realistic event coordinates
-    const rect = thumbnailImg.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
+    // Start watching the thumbnail and its subtree for attribute changes
+    observer.observe(thumbnail, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-i', 'data-ow', 'data-it', 'data-lpage', 'data-ou']
+    });
 
-    // Common event properties for realistic simulation
+    // Also observe parent elements
+    let parent = thumbnail.parentElement;
+    for (let i = 0; i < 5 && parent; i++) {
+      observer.observe(parent, { attributes: true, subtree: true });
+      parent = parent.parentElement;
+    }
+
+    // STEP 3: Trigger Google's "Wake Up" events
+    const rect = thumbnailImg.getBoundingClientRect();
     const eventProps = {
       bubbles: true,
       cancelable: true,
       view: window,
-      clientX: centerX,
-      clientY: centerY,
-      screenX: centerX,
-      screenY: centerY,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
       button: 0,
       buttons: 1
     };
 
-    // SECRET STEP: "Wake up" Google's metadata by simulating interaction
-    // IMPORTANT: pointerdown MUST come before mousedown (matches natural browser order)
+    // Fire pointerdown first (modern browsers expect this order)
+    thumbnail.dispatchEvent(new PointerEvent('pointerdown', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
+    thumbnail.dispatchEvent(new MouseEvent('mousedown', eventProps));
 
-    // Step 1: Fire pointerdown first (modern browsers)
+    // Also on the image itself
     thumbnailImg.dispatchEvent(new PointerEvent('pointerdown', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-
-    // Step 2: Fire mousedown (for legacy handlers)
     thumbnailImg.dispatchEvent(new MouseEvent('mousedown', eventProps));
 
-    // Also fire on container to ensure all listeners are triggered
-    metadataContainer.dispatchEvent(new PointerEvent('pointerdown', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-    metadataContainer.dispatchEvent(new MouseEvent('mousedown', eventProps));
+    // STEP 4: Wait for observer or timeout (1 second for slow connections)
+    await new Promise(resolve => {
+      const checkInterval = setInterval(() => {
+        if (observerResolved) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
 
-    // Wait for MutationObserver to detect the high-res URL (or timeout)
-    const observedUrl = await observerPromise;
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (!observerResolved) {
+          console.log('HiRes: Observer timeout - checking attributes one more time');
+          // Final check before giving up
+          const finalUrl = checkExistingAttributes(thumbnail);
+          if (finalUrl) {
+            observedHighResUrl = finalUrl;
+            console.log('HiRes: ✅ Found URL on final check:', finalUrl);
+          }
+        }
+        observer.disconnect();
+        resolve();
+      }, 1000);
+    });
 
-    // Fire pointer/mouse up to complete the interaction cycle
-    thumbnailImg.dispatchEvent(new PointerEvent('pointerup', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
-    thumbnailImg.dispatchEvent(new MouseEvent('mouseup', eventProps));
+    // Complete the interaction cycle
+    thumbnail.dispatchEvent(new PointerEvent('pointerup', { ...eventProps, pointerId: 1, pointerType: 'mouse', isPrimary: true }));
+    thumbnail.dispatchEvent(new MouseEvent('mouseup', eventProps));
 
     // Store the element
     lastRightClickedElement = target;
 
-    if (observedUrl) {
-      console.log('HiRes: Metadata activation complete - URL pre-captured:', observedUrl);
+    if (observedHighResUrl) {
+      console.log('HiRes: Metadata activation complete - URL pre-captured:', observedHighResUrl);
     } else {
       console.log('HiRes: Metadata activation complete - will extract on demand');
     }
