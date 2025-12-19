@@ -104,6 +104,8 @@
 
     // API integration
     switch (config.upscaleApi) {
+      case 'claid':
+        return await upscaleWithClaid(imageUrl, scale, config.apiKey);
       case 'replicate':
         return await upscaleWithReplicate(imageUrl, scale, config.apiKey);
       case 'deepai':
@@ -121,6 +123,41 @@
   async function demoUpscale(imageUrl, scale) {
     await new Promise(r => setTimeout(r, 2500));
     return { url: imageUrl, isDemo: true };
+  }
+
+  /**
+   * Upscale using Claid.ai API (Recommended for fidelity)
+   * Best for: photos, products, faces - preserves textures without hallucinations
+   */
+  async function upscaleWithClaid(imageUrl, scale, apiKey) {
+    const response = await fetch('https://api.claid.ai/v1-beta1/image/edit', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        input: imageUrl,
+        operations: {
+          resizing: {
+            width: `x${scale}`,
+            fit: 'bounds'
+          },
+          upscaling: 'smart_enhance'
+        },
+        output: {
+          format: 'png'
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.error) {
+      throw new Error(result.error.message || 'Claid.ai upscaling failed');
+    }
+
+    return { url: result.data.output.tmp_url, isDemo: false };
   }
 
   /**
@@ -280,11 +317,12 @@
     const input = prompt(
       'Configure Upscaling API\n\n' +
       'Supported services:\n' +
+      '• Claid.ai (claid.ai) ← Recommended for fidelity\n' +
       '• Replicate (replicate.com)\n' +
-      '• DeepAI (deepai.org)\n' +
-      '• fal.ai (fal.ai)\n\n' +
+      '• fal.ai (fal.ai)\n' +
+      '• DeepAI (deepai.org)\n\n' +
       'Format: service:api_key\n' +
-      'Example: replicate:r8_xxxx'
+      'Example: claid:your_api_key'
     );
 
     if (input && input.includes(':')) {
