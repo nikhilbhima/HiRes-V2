@@ -13,32 +13,79 @@
 
   /**
    * Extract high-res URL from attribute value (used by MutationObserver)
+   * Now also captures URLs without extensions (modern CDNs often don't use them)
    */
   function extractUrlFromAttribute(attrValue) {
     if (!attrValue) return null;
 
-    // Find all URLs with image extensions
-    const urlPattern = /https?:\/\/[^"\[\]\s,\\]+\.(?:jpg|jpeg|png|webp|svg|bmp|gif|tiff?)/gi;
-    const allUrls = attrValue.match(urlPattern) || [];
+    // Decode escaped characters first
+    let decoded = attrValue;
+    try {
+      decoded = attrValue
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\x([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\\//g, '/')
+        .replace(/\\"/g, '"');
+    } catch (e) {}
 
-    // Filter out Google thumbnails and base64
-    const candidates = allUrls.filter(url => {
-      const lowerUrl = url.toLowerCase();
-      return !lowerUrl.includes('gstatic.com') &&
-             !lowerUrl.includes('googleusercontent.com') &&
-             !lowerUrl.includes('google.com') &&
-             !lowerUrl.includes('encrypted-tbn') &&
-             !lowerUrl.includes('ggpht.com') &&
-             !lowerUrl.includes('googleapis.com') &&
-             !lowerUrl.includes('data:image') &&
-             !lowerUrl.includes('base64');
-    });
+    // Pattern 1: URLs with image extensions
+    const extPattern = /https?:\/\/[^"\[\]\s,\\<>]+\.(?:jpg|jpeg|png|webp|svg|bmp|gif|tiff?)(?:\?[^"\[\]\s,\\<>]*)?/gi;
+
+    // Pattern 2: URLs in array format ["url", width, height] - these are often the high-res ones
+    const arrayPattern = /\["(https?:\/\/[^"]+)",\s*(\d+),\s*(\d+)\]/g;
+
+    const allUrls = [];
+
+    // Collect URLs with extensions
+    const extMatches = decoded.match(extPattern) || [];
+    allUrls.push(...extMatches);
+
+    // Collect URLs from array format (with dimensions for sorting)
+    let match;
+    while ((match = arrayPattern.exec(decoded)) !== null) {
+      const url = match[1];
+      const width = parseInt(match[2]);
+      const height = parseInt(match[3]);
+      // Only add if it looks like a real image (reasonable dimensions)
+      if (width > 100 && height > 100) {
+        allUrls.push({ url, pixels: width * height });
+      }
+    }
+
+    // Log what we found for debugging
+    console.log('HiRes: Raw extraction found', allUrls.length, 'URLs');
+
+    // Filter out Google thumbnails
+    const candidates = allUrls
+      .map(item => typeof item === 'string' ? { url: item, pixels: 0 } : item)
+      .filter(item => {
+        const lowerUrl = item.url.toLowerCase();
+        const isGoogle = lowerUrl.includes('gstatic.com') ||
+                         lowerUrl.includes('googleusercontent.com') ||
+                         lowerUrl.includes('encrypted-tbn') ||
+                         lowerUrl.includes('ggpht.com') ||
+                         lowerUrl.includes('googleapis.com') ||
+                         lowerUrl.startsWith('data:');
+        return !isGoogle;
+      });
+
+    console.log('HiRes: After filtering:', candidates.length, 'non-Google URLs');
 
     if (candidates.length === 0) return null;
 
-    // Sort by length (longest = most likely original)
-    candidates.sort((a, b) => b.length - a.length);
-    return candidates[0];
+    // Sort: first by pixel count (if available), then by URL length
+    candidates.sort((a, b) => {
+      if (a.pixels !== b.pixels) return b.pixels - a.pixels;
+      return b.url.length - a.url.length;
+    });
+
+    // Log top candidates
+    console.log('HiRes: Top candidates:');
+    candidates.slice(0, 3).forEach((c, i) => {
+      console.log(`  ${i + 1}. [${c.pixels}px, ${c.url.length}chars] ${c.url.substring(0, 60)}...`);
+    });
+
+    return candidates[0].url;
   }
 
   /**
@@ -49,11 +96,13 @@
     for (const attr of attrsToCheck) {
       if (container.hasAttribute(attr)) {
         const value = container.getAttribute(attr);
-        // Only accept if it contains http and NOT base64/gstatic
-        if (value && value.includes('http') && !value.includes('gstatic.com') && !value.includes('base64')) {
+        // Don't reject based on containing gstatic - the attribute often has BOTH
+        // gstatic URLs and the real URL. Let extractUrlFromAttribute filter them.
+        if (value && value.includes('http')) {
+          console.log('HiRes: Checking attribute', attr, '(length:', value.length + ')');
           const url = extractUrlFromAttribute(value);
           if (url) {
-            console.log('HiRes: Found existing high-res URL in', attr);
+            console.log('HiRes: Found high-res URL in', attr);
             return url;
           }
         }
@@ -101,10 +150,11 @@
           const attrName = mutation.attributeName;
           const attrValue = mutation.target.getAttribute(attrName);
 
-          // Check if this attribute now contains a real URL (not base64/gstatic)
+          // Check relevant attributes - don't filter by gstatic here, let extractUrlFromAttribute handle it
           if ((attrName === 'data-i' || attrName === 'data-ow' || attrName === 'data-it') &&
-              attrValue && attrValue.includes('http') && !attrValue.includes('gstatic.com')) {
+              attrValue && attrValue.includes('http')) {
 
+            console.log('HiRes: Observer detected change in', attrName);
             const url = extractUrlFromAttribute(attrValue);
             if (url) {
               console.log('HiRes: ✅ Observer caught high-res URL:', url);
