@@ -71,7 +71,7 @@
         <div class="error-state">
           <div class="error-icon">⚠️</div>
           <div class="error-title">Failed to load image</div>
-          <div class="error-detail">${url.substring(0, 60)}...</div>
+          <div class="error-detail">${escapeHtml(url.substring(0, 60))}...</div>
         </div>
       `;
     };
@@ -119,11 +119,12 @@
   }
 
   /**
-   * Demo upscaling - returns original image after delay
+   * Escape HTML to prevent XSS
    */
-  async function demoUpscale(imageUrl, scale) {
-    await new Promise(r => setTimeout(r, 2500));
-    return { url: imageUrl, isDemo: true };
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   /**
@@ -294,7 +295,7 @@
       <div class="error-state">
         <div class="error-icon">❌</div>
         <div class="error-title">Processing Failed</div>
-        <div class="error-detail">${message}</div>
+        <div class="error-detail">${escapeHtml(message)}</div>
       </div>
     `;
     outputFrame.style.display = 'flex';
