@@ -1,32 +1,27 @@
 /**
  * HiRes - Content Script
- * "Ghost Click" approach - clicks thumbnail, extracts from hidden preview panel
- * Updated December 2025
+ * "Ghost Click" approach with precision selectors (December 2025)
  */
 
 (function () {
   'use strict';
 
-  // Store the last right-clicked element
   let lastRightClickedElement = null;
 
-  // CSS to hide the preview panel during extraction
+  // CSS to completely hide preview panel during extraction
   const HIDE_PREVIEW_CSS = `
-    /* Hide Google Images preview panel so user doesn't see it */
-    #islsp,
-    .islsp,
-    [jsname="CGzTgf"],
-    [data-ved][role="dialog"],
-    .pxAole,
-    .tvh9oe,
-    .immersive-container {
-      opacity: 0 !important;
+    #islsp, .islsp, .v4dQwb, [role="region"], [jsname="CGzTgf"],
+    .pxAole, .tvh9oe, .immersive-container, div[data-ved][role="dialog"] {
+      opacity: 0.01 !important;
       pointer-events: none !important;
+      position: fixed !important;
+      top: -9999px !important;
+      left: -9999px !important;
     }
   `;
 
   /**
-   * Inject CSS to hide the preview panel
+   * Inject hiding CSS
    */
   function injectHideStyle() {
     const style = document.createElement('style');
@@ -37,7 +32,7 @@
   }
 
   /**
-   * Remove the hide style
+   * Remove hiding CSS
    */
   function removeHideStyle(style) {
     if (style && style.parentNode) {
@@ -46,161 +41,151 @@
   }
 
   /**
-   * Close the preview panel
+   * Close preview panel
    */
   function closePreviewPanel() {
-    // Try various close methods
-
-    // Method 1: Press Escape
+    // Method 1: Escape key
     document.dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'Escape',
-      code: 'Escape',
-      keyCode: 27,
-      bubbles: true
+      key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true
     }));
 
     // Method 2: Click close button
-    const closeSelectors = [
-      '[aria-label="Close"]',
-      '[aria-label="close"]',
-      '.hm60ue', // Close button class
-      'button[jsaction*="close"]',
-      '.Q4iAWc'
-    ];
+    const closeBtn = document.querySelector('[aria-label="Close"], [aria-label="close"], .hm60ue');
+    if (closeBtn) closeBtn.click();
 
-    for (const selector of closeSelectors) {
-      const closeBtn = document.querySelector(selector);
-      if (closeBtn) {
-        closeBtn.click();
-        break;
-      }
-    }
-
-    // Method 3: Click outside the panel
+    // Method 3: Click body
     document.body.click();
   }
 
   /**
-   * Check if URL is a valid high-res source (not Google thumbnail)
+   * Check if URL is valid high-res (not Google thumbnail)
    */
   function isValidHighResUrl(src) {
     if (!src) return false;
-    if (!src.startsWith('http')) return false;
-
     const lower = src.toLowerCase();
-    return !lower.includes('base64') &&
+    return src.startsWith('http') &&
            !lower.includes('data:image') &&
+           !lower.includes('base64') &&
            !lower.includes('gstatic.com') &&
            !lower.includes('googleusercontent.com') &&
            !lower.includes('encrypted-tbn') &&
            !lower.includes('ggpht.com') &&
-           !lower.includes('googleapis.com') &&
-           !lower.includes('/th?') &&  // Google thumbnail URL pattern
-           !lower.includes('=s') &&    // Google sizing parameter
-           lower.length > 50;          // Real URLs tend to be longer
+           !lower.includes('googleapis.com');
   }
 
   /**
-   * Extract high-res URL from the preview panel
-   * Waits for the large image to load with a real URL
+   * Trigger Google's preview with full interaction sequence
    */
-  async function extractFromPreviewPanel(maxWaitMs = 5000) {
-    const startTime = Date.now();
-    let bestUrl = null;
-    let bestWidth = 0;
+  function triggerGooglePreview(thumbnail) {
+    const rect = thumbnail.getBoundingClientRect();
+    const opts = {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2
+    };
 
-    console.log('HiRes: Scanning for preview image...');
+    // Full physical interaction sequence
+    thumbnail.dispatchEvent(new PointerEvent('pointerdown', { ...opts, isPrimary: true }));
+    thumbnail.dispatchEvent(new MouseEvent('mousedown', opts));
+    thumbnail.dispatchEvent(new PointerEvent('pointerup', { ...opts, isPrimary: true }));
+    thumbnail.dispatchEvent(new MouseEvent('mouseup', opts));
+    thumbnail.click();
+  }
 
-    while (Date.now() - startTime < maxWaitMs) {
-      // Method 1: Look for ALL images on page and find the largest valid one
-      const allImages = document.querySelectorAll('img');
+  /**
+   * Wait for high-res image with setInterval (50ms checks, max 2.5 seconds)
+   */
+  function waitForHighResImage() {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      const maxWait = 2500;
 
-      for (const img of allImages) {
-        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-iurl');
+      // Primary selectors for Google's large preview image (Dec 2025)
+      const primarySelectors = [
+        'img[jsname="cpNoic"]',     // Primary large image
+        'img.s699le',                // Alternative class
+        'img[jsname="kn3ccd"]',      // Another jsname variant
+        'img[jsname="HiaYvf"]',      // Yet another variant
+        'img.sFlh5c.FyHeAf',         // Class-based selector
+        'img.n3VNCb',                // Common preview class
+        'img.iPVvYb',                // Another preview class
+      ];
 
-        if (isValidHighResUrl(src)) {
-          // Check actual rendered/natural dimensions
-          const width = img.naturalWidth || img.width || 0;
-          const height = img.naturalHeight || img.height || 0;
-
-          // We want the largest image that's not the thumbnail grid
-          if (width > 400 && width > bestWidth) {
-            bestUrl = src;
-            bestWidth = width;
-            console.log(`HiRes: Found candidate [${width}x${height}]: ${src.substring(0, 80)}...`);
-          }
+      const checkInterval = setInterval(() => {
+        // Check if timeout
+        if (Date.now() - startTime > maxWait) {
+          clearInterval(checkInterval);
+          console.log('HiRes: ❌ Timeout waiting for preview image');
+          resolve(null);
+          return;
         }
-      }
 
-      // Method 2: Check data-iurl attributes (Google sometimes stores URL here)
-      const elementsWithDataUrl = document.querySelectorAll('[data-iurl], [data-ou], [data-src]');
-      for (const el of elementsWithDataUrl) {
-        const src = el.getAttribute('data-iurl') || el.getAttribute('data-ou') || el.getAttribute('data-src');
-        if (isValidHighResUrl(src)) {
-          console.log('HiRes: Found URL in data attribute:', src.substring(0, 80));
-          if (!bestUrl || src.length > bestUrl.length) {
-            bestUrl = src;
-          }
-        }
-      }
-
-      // Method 3: Check for links with imgurl parameter
-      const imgLinks = document.querySelectorAll('a[href*="imgurl="]');
-      for (const link of imgLinks) {
-        try {
-          const url = new URL(link.href);
-          const imgurl = url.searchParams.get('imgurl');
-          if (imgurl && isValidHighResUrl(imgurl)) {
-            const decoded = decodeURIComponent(imgurl);
-            console.log('HiRes: Found URL in imgurl link:', decoded.substring(0, 80));
-            if (!bestUrl || decoded.length > bestUrl.length) {
-              bestUrl = decoded;
+        // Try primary selectors first
+        for (const selector of primarySelectors) {
+          const img = document.querySelector(selector);
+          if (img) {
+            const src = img.src || img.getAttribute('data-src');
+            if (isValidHighResUrl(src)) {
+              clearInterval(checkInterval);
+              console.log('HiRes: ✅ Found via selector', selector, ':', src.substring(0, 60));
+              resolve(src);
+              return;
             }
           }
-        } catch (e) {}
-      }
+        }
 
-      // Method 4: Check elements with specific jsname attributes
-      const jsNameSelectors = ['[jsname="kn3ccd"]', '[jsname="HiaYvf"]', '[jsname="Q4LuWd"]'];
-      for (const selector of jsNameSelectors) {
-        const el = document.querySelector(selector);
-        if (el) {
-          const src = el.src || el.getAttribute('data-src');
+        // Fallback: Find largest valid image on page
+        let bestUrl = null;
+        let bestWidth = 0;
+
+        const allImages = document.querySelectorAll('img');
+        for (const img of allImages) {
+          const src = img.src;
           if (isValidHighResUrl(src)) {
-            console.log('HiRes: Found URL via jsname:', src.substring(0, 80));
-            return src;
+            const width = img.naturalWidth || img.width || 0;
+            if (width > 500 && width > bestWidth) {
+              bestUrl = src;
+              bestWidth = width;
+            }
           }
         }
-      }
 
-      // If we found a good candidate with width > 600, use it
-      if (bestUrl && bestWidth > 600) {
-        console.log('HiRes: ✅ Using best candidate:', bestUrl.substring(0, 80));
-        return bestUrl;
-      }
+        if (bestUrl && bestWidth > 600) {
+          clearInterval(checkInterval);
+          console.log('HiRes: ✅ Found large image [', bestWidth, 'px]:', bestUrl.substring(0, 60));
+          resolve(bestUrl);
+          return;
+        }
 
-      // Wait 150ms before next scan
-      await new Promise(r => setTimeout(r, 150));
-    }
+        // Check for imgurl= links in preview panel
+        const imgLinks = document.querySelectorAll('[role="region"] a[href*="imgurl="], #islsp a[href*="imgurl="]');
+        for (const link of imgLinks) {
+          try {
+            const url = new URL(link.href);
+            const imgurl = url.searchParams.get('imgurl');
+            if (imgurl && isValidHighResUrl(imgurl)) {
+              clearInterval(checkInterval);
+              const decoded = decodeURIComponent(imgurl);
+              console.log('HiRes: ✅ Found via imgurl link:', decoded.substring(0, 60));
+              resolve(decoded);
+              return;
+            }
+          } catch (e) {}
+        }
 
-    // Return whatever we found, even if not ideal
-    if (bestUrl) {
-      console.log('HiRes: ✅ Using best found URL:', bestUrl.substring(0, 80));
-      return bestUrl;
-    }
-
-    console.log('HiRes: ❌ Could not find high-res URL in preview panel');
-    return null;
+      }, 50); // Check every 50ms
+    });
   }
 
   /**
-   * The main "Ghost Click" function
-   * Clicks thumbnail invisibly, extracts URL from preview, cleans up
+   * Main Ghost Click extraction
    */
   async function ghostClickAndExtract(thumbnailElement) {
-    console.log('HiRes: Starting Ghost Click extraction');
+    console.log('HiRes: Starting Ghost Click extraction...');
 
-    // Step 1: Find the clickable element
+    // Find clickable element
     const clickable = thumbnailElement.closest('a') ||
                       thumbnailElement.closest('[jsaction*="click"]') ||
                       thumbnailElement.closest('[data-ved]') ||
@@ -211,35 +196,33 @@
       return null;
     }
 
-    // Step 2: Inject CSS to hide the preview panel
+    // Step 1: Inject hiding CSS
     const hideStyle = injectHideStyle();
     console.log('HiRes: Preview panel hidden');
 
     try {
-      // Step 3: Click the thumbnail to open preview
-      console.log('HiRes: Clicking thumbnail...');
-      clickable.click();
+      // Step 2: Trigger preview with full interaction sequence
+      console.log('HiRes: Triggering preview...');
+      triggerGooglePreview(clickable);
 
-      // Step 4: Wait for preview to load and extract URL
-      const highResUrl = await extractFromPreviewPanel(3000);
+      // Step 3: Wait for high-res image to appear
+      const highResUrl = await waitForHighResImage();
 
-      // Step 5: Close the preview panel
+      // Step 4: Close preview
       closePreviewPanel();
-
-      // Small delay to ensure panel closes
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 50));
 
       return highResUrl;
 
     } finally {
-      // Step 6: Always remove the hide style
+      // Step 5: Always cleanup
       removeHideStyle(hideStyle);
       console.log('HiRes: Cleanup complete');
     }
   }
 
   /**
-   * Strip sizing parameters from URL
+   * Strip sizing parameters
    */
   function stripSizingParameters(url) {
     if (!url) return url;
@@ -250,24 +233,23 @@
   }
 
   /**
-   * Capture right-click target
+   * Capture right-click
    */
   document.addEventListener('contextmenu', (event) => {
     lastRightClickedElement = event.target;
-    console.log('HiRes: Right-click captured on:', event.target.tagName);
+    console.log('HiRes: Right-click on:', event.target.tagName);
   }, true);
 
   /**
-   * Handle messages from background script
+   * Handle messages from background
    */
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'getOriginalUrl') {
-      console.log('HiRes: Received request for original URL');
+      console.log('HiRes: Received request');
 
-      // Use the captured element from right-click
       let targetElement = lastRightClickedElement;
 
-      // Fallback: try to find element by thumbnail URL
+      // Fallback: find by thumbnail URL
       if (!targetElement && message.thumbnailUrl) {
         targetElement = document.querySelector(`img[src="${message.thumbnailUrl}"]`);
         if (!targetElement) {
@@ -282,35 +264,34 @@
       }
 
       if (!targetElement) {
-        console.log('HiRes: No target element found');
+        console.log('HiRes: No target element');
         sendResponse({ originalUrl: null });
         return true;
       }
 
-      // Use Ghost Click approach
+      // Execute Ghost Click
       (async () => {
         try {
           const highResUrl = await ghostClickAndExtract(targetElement);
 
           if (highResUrl) {
             const finalUrl = stripSizingParameters(highResUrl);
-            console.log('HiRes: ✅ SUCCESS - Final URL:', finalUrl);
+            console.log('HiRes: ✅ SUCCESS:', finalUrl);
             sendResponse({ originalUrl: finalUrl });
           } else {
             console.log('HiRes: ❌ FAILED - No URL found');
             sendResponse({ originalUrl: null });
           }
         } catch (error) {
-          console.error('HiRes: Error during extraction:', error);
+          console.error('HiRes: Error:', error);
           sendResponse({ originalUrl: null });
         }
       })();
 
-      return true; // Keep message channel open for async response
+      return true;
     }
-
     return false;
   });
 
-  console.log('HiRes: Content script loaded (Ghost Click approach - December 2025)');
+  console.log('HiRes: Loaded (Precision Selectors - Dec 2025)');
 })();
