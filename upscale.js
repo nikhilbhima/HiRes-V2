@@ -154,7 +154,15 @@
     const result = await response.json();
 
     if (result.error) {
-      throw new Error(result.error.message || 'Claid.ai upscaling failed');
+      const errMsg = result.error.message || '';
+      // Handle common errors with user-friendly messages
+      if (errMsg.includes('credit') || errMsg.includes('limit') || response.status === 402) {
+        throw new Error('Out of credits! Visit claid.ai to add more.');
+      }
+      if (response.status === 401) {
+        throw new Error('Invalid API key. Check your Claid.ai key.');
+      }
+      throw new Error(errMsg || 'Claid.ai upscaling failed');
     }
 
     return { url: result.data.output.tmp_url, isDemo: false };
