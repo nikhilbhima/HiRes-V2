@@ -90,30 +90,31 @@
     });
   }
 
+  // Default API config (works out of the box)
+  const DEFAULT_API = 'claid';
+  const DEFAULT_KEY = 'b176fab7d37647a1bb785e0ee2193540';
+
   /**
    * Upscale image using API
    */
   async function upscaleImage(imageUrl, scale) {
-    // Check for stored API configuration
+    // Check for stored API configuration, fall back to built-in key
     const config = await chrome.storage.sync.get(['upscaleApi', 'apiKey']);
-
-    if (!config.apiKey) {
-      // Demo mode - simulate upscaling
-      return await demoUpscale(imageUrl, scale);
-    }
+    const api = config.upscaleApi || DEFAULT_API;
+    const key = config.apiKey || DEFAULT_KEY;
 
     // API integration
-    switch (config.upscaleApi) {
+    switch (api) {
       case 'claid':
-        return await upscaleWithClaid(imageUrl, scale, config.apiKey);
+        return await upscaleWithClaid(imageUrl, scale, key);
       case 'replicate':
-        return await upscaleWithReplicate(imageUrl, scale, config.apiKey);
+        return await upscaleWithReplicate(imageUrl, scale, key);
       case 'deepai':
-        return await upscaleWithDeepAI(imageUrl, scale, config.apiKey);
+        return await upscaleWithDeepAI(imageUrl, scale, key);
       case 'fal':
-        return await upscaleWithFal(imageUrl, scale, config.apiKey);
+        return await upscaleWithFal(imageUrl, scale, key);
       default:
-        return await demoUpscale(imageUrl, scale);
+        return await upscaleWithClaid(imageUrl, scale, key);
     }
   }
 
@@ -271,16 +272,8 @@
         downloadBtn.style.display = 'flex';
         processBtn.disabled = false;
 
-        // Update notice
-        if (result.isDemo) {
-          configNotice.innerHTML = `
-            <strong>Demo Mode:</strong> Showing original image.
-            <a class="config-link" id="configureLink2">Configure API</a> for real upscaling.
-          `;
-          document.getElementById('configureLink2')?.addEventListener('click', showApiConfig);
-        } else {
-          configNotice.style.display = 'none';
-        }
+        // Hide config notice - API works out of the box
+        configNotice.style.display = 'none';
       };
 
       img.onerror = function() {
