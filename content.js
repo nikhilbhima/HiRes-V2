@@ -81,77 +81,112 @@
   }
 
   /**
+   * Check if URL is a valid high-res source (not Google thumbnail)
+   */
+  function isValidHighResUrl(src) {
+    if (!src) return false;
+    if (!src.startsWith('http')) return false;
+
+    const lower = src.toLowerCase();
+    return !lower.includes('base64') &&
+           !lower.includes('data:image') &&
+           !lower.includes('gstatic.com') &&
+           !lower.includes('googleusercontent.com') &&
+           !lower.includes('encrypted-tbn') &&
+           !lower.includes('ggpht.com') &&
+           !lower.includes('googleapis.com') &&
+           !lower.includes('/th?') &&  // Google thumbnail URL pattern
+           !lower.includes('=s') &&    // Google sizing parameter
+           lower.length > 50;          // Real URLs tend to be longer
+  }
+
+  /**
    * Extract high-res URL from the preview panel
    * Waits for the large image to load with a real URL
    */
-  async function extractFromPreviewPanel(maxWaitMs = 3000) {
+  async function extractFromPreviewPanel(maxWaitMs = 5000) {
     const startTime = Date.now();
+    let bestUrl = null;
+    let bestWidth = 0;
 
-    // Selectors for the large preview image
-    const previewImageSelectors = [
-      // Primary selectors for the large preview image
-      '[jsname="kn3ccd"]',           // Large image jsname
-      '[jsname="HiaYvf"]',           // Alternative jsname
-      'img.sFlh5c.FyHeAf',           // Large image classes
-      'img.n3VNCb',                  // Another common class
-      'img.iPVvYb',                  // Yet another class
-      '[data-noaft] img',            // Container with data-noaft
-      '.tvh9oe img',                 // Preview container image
-      '[role="dialog"] img',         // Dialog image
-      'c-wiz[data-p] img',           // c-wiz container image
-    ];
+    console.log('HiRes: Scanning for preview image...');
 
     while (Date.now() - startTime < maxWaitMs) {
-      // Try each selector
-      for (const selector of previewImageSelectors) {
-        const imgs = document.querySelectorAll(selector);
+      // Method 1: Look for ALL images on page and find the largest valid one
+      const allImages = document.querySelectorAll('img');
 
-        for (const img of imgs) {
-          const src = img.src || img.getAttribute('src');
+      for (const img of allImages) {
+        const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-iurl');
 
-          // Check if it's a valid high-res URL (not base64, not Google thumbnail)
-          if (src &&
-              src.startsWith('http') &&
-              !src.includes('base64') &&
-              !src.includes('data:image') &&
-              !src.includes('gstatic.com') &&
-              !src.includes('googleusercontent.com') &&
-              !src.includes('encrypted-tbn') &&
-              !src.includes('ggpht.com')) {
+        if (isValidHighResUrl(src)) {
+          // Check actual rendered/natural dimensions
+          const width = img.naturalWidth || img.width || 0;
+          const height = img.naturalHeight || img.height || 0;
 
-            // Check image dimensions - preview image should be large
-            if (img.naturalWidth > 200 || img.width > 200) {
-              console.log('HiRes: ✅ Found high-res URL in preview:', src);
-              return src;
-            }
+          // We want the largest image that's not the thumbnail grid
+          if (width > 400 && width > bestWidth) {
+            bestUrl = src;
+            bestWidth = width;
+            console.log(`HiRes: Found candidate [${width}x${height}]: ${src.substring(0, 80)}...`);
           }
         }
       }
 
-      // Also check for "Open image in new tab" links
-      const linkSelectors = [
-        'a[href*="imgurl="]',
-        'a[aria-label*="image"]',
-        'a[href^="http"]:not([href*="google"])'
-      ];
-
-      for (const selector of linkSelectors) {
-        const links = document.querySelectorAll(selector);
-        for (const link of links) {
-          // Check if this is the "open original" link
-          if (link.href && link.href.includes('imgurl=')) {
-            const url = new URL(link.href);
-            const imgurl = url.searchParams.get('imgurl');
-            if (imgurl && !imgurl.includes('gstatic') && !imgurl.includes('googleusercontent')) {
-              console.log('HiRes: ✅ Found high-res URL in link:', imgurl);
-              return decodeURIComponent(imgurl);
-            }
+      // Method 2: Check data-iurl attributes (Google sometimes stores URL here)
+      const elementsWithDataUrl = document.querySelectorAll('[data-iurl], [data-ou], [data-src]');
+      for (const el of elementsWithDataUrl) {
+        const src = el.getAttribute('data-iurl') || el.getAttribute('data-ou') || el.getAttribute('data-src');
+        if (isValidHighResUrl(src)) {
+          console.log('HiRes: Found URL in data attribute:', src.substring(0, 80));
+          if (!bestUrl || src.length > bestUrl.length) {
+            bestUrl = src;
           }
         }
       }
 
-      // Wait 100ms before next check
-      await new Promise(r => setTimeout(r, 100));
+      // Method 3: Check for links with imgurl parameter
+      const imgLinks = document.querySelectorAll('a[href*="imgurl="]');
+      for (const link of imgLinks) {
+        try {
+          const url = new URL(link.href);
+          const imgurl = url.searchParams.get('imgurl');
+          if (imgurl && isValidHighResUrl(imgurl)) {
+            const decoded = decodeURIComponent(imgurl);
+            console.log('HiRes: Found URL in imgurl link:', decoded.substring(0, 80));
+            if (!bestUrl || decoded.length > bestUrl.length) {
+              bestUrl = decoded;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Method 4: Check elements with specific jsname attributes
+      const jsNameSelectors = ['[jsname="kn3ccd"]', '[jsname="HiaYvf"]', '[jsname="Q4LuWd"]'];
+      for (const selector of jsNameSelectors) {
+        const el = document.querySelector(selector);
+        if (el) {
+          const src = el.src || el.getAttribute('data-src');
+          if (isValidHighResUrl(src)) {
+            console.log('HiRes: Found URL via jsname:', src.substring(0, 80));
+            return src;
+          }
+        }
+      }
+
+      // If we found a good candidate with width > 600, use it
+      if (bestUrl && bestWidth > 600) {
+        console.log('HiRes: ✅ Using best candidate:', bestUrl.substring(0, 80));
+        return bestUrl;
+      }
+
+      // Wait 150ms before next scan
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    // Return whatever we found, even if not ideal
+    if (bestUrl) {
+      console.log('HiRes: ✅ Using best found URL:', bestUrl.substring(0, 80));
+      return bestUrl;
     }
 
     console.log('HiRes: ❌ Could not find high-res URL in preview panel');
