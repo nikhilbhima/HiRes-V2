@@ -1,79 +1,126 @@
-# HiRes - Google Images High-Resolution Opener
+# HiRes
 
-A Chrome extension that opens the original high-resolution source image from Google Images thumbnails with a single right-click.
+A Chrome extension for power users who need high-resolution images. Extract original source images from Google Images thumbnails and upscale any image with AI.
+
+> **Early Development Notice**: This extension is in active development. While core functionality is stable, you may encounter edge cases or minor bugs. Issues and PRs welcome.
+
+## Features
+
+### 1. Open with HiRes
+Extract the original high-resolution source image from Google Images thumbnails with a single right-click.
+
+### 2. Upscale with HiRes
+AI-powered image upscaling (2x/4x) using Claid.ai's neural network. Works on any image across the web.
 
 ## Installation
 
-1. Clone this repository or download as ZIP
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked" and select this folder
-5. The extension icon should appear in your toolbar
+### From Source
+```bash
+git clone https://github.com/your-username/hires.git
+cd hires
+```
+
+1. Open Chrome → `chrome://extensions/`
+2. Enable **Developer mode** (top right toggle)
+3. Click **Load unpacked** → select the cloned folder
+4. Extension icon appears in toolbar
 
 ## Usage
 
-1. Go to Google Images and search for something
-2. Right-click on any thumbnail
-3. Select "Open with HiRes"
-4. The original high-resolution image opens in a new tab
+1. Navigate to any webpage with images
+2. Right-click on an image
+3. Select **HiRes** from the context menu:
+   - **Open with HiRes** - Opens original high-res source (Google Images)
+   - **Upscale with HiRes** - Opens Upscale Studio for AI enhancement
 
-## How It Works
+### Upscale Studio
+- Automatically starts processing at 2x scale
+- Switch to 4x for maximum resolution
+- Download the enhanced image when complete
 
-The extension uses a two-phase approach to extract the original image URL:
+## Technical Architecture
 
-### Phase 1: Fast Path (Instant)
-Attempts to extract the URL directly from the thumbnail's link attributes without any DOM manipulation:
-- Checks for `imgurl` parameter in parent link
-- Regex matches embedded image URLs in href
+### High-Res Extraction (content.js)
+Two-phase URL extraction approach:
 
-### Phase 2: Ghost Click (Fallback)
-If Fast Path fails, triggers Google's preview panel invisibly:
-1. **Pre-clean**: Close any existing preview to avoid stale data
-2. **Hide Panel**: Inject CSS (`opacity: 0`) to make preview invisible but still render
-3. **Simulate Click**: Full interaction sequence (pointer/mouse events)
-4. **Poll for Image**: Use `requestAnimationFrame` to check every frame (~16ms)
-5. **Extract URL**: Grab the high-res `src` from preview image
-6. **Cleanup**: Close preview and remove CSS
+**Phase 1: Fast Path** (0ms)
+- Parses `imgurl` parameter from thumbnail's parent link
+- Regex extraction of embedded image URLs
 
-### Key Technical Details
+**Phase 2: Ghost Click** (fallback)
+- Triggers Google's preview panel invisibly (`opacity: 0`)
+- Polls with `requestAnimationFrame` for loaded high-res image
+- Extracts source URL and closes preview
 
-- Uses `opacity: 0` instead of `display: none` (hidden elements don't load images)
-- `requestAnimationFrame` for responsive polling (syncs with browser render)
-- Multiple selector fallbacks for Google's changing DOM structure
-- Strips Referer header via declarativeNetRequest for cross-origin images
+### Upscaling (upscale.js)
+- Converts image to Blob via canvas for CORS-safe upload
+- Multipart form upload to Claid.ai `/v1/image/edit/upload`
+- Fallback to direct URL mode if source is publicly accessible
+- Supports multiple API backends (Claid, Replicate, fal.ai, DeepAI)
 
-## Files
+## File Structure
 
-| File | Purpose |
-|------|---------|
-| `manifest.json` | Extension configuration (Manifest V3) |
-| `background.js` | Service worker - context menu & tab management |
-| `content.js` | Injected script - URL extraction logic |
-| `rules.json` | Network rules to strip Referer header |
+```
+hires/
+├── manifest.json      # Extension config (Manifest V3)
+├── background.js      # Service worker - context menu & routing
+├── content.js         # URL extraction logic (injected)
+├── upscale.html       # Upscale Studio UI
+├── upscale.js         # Upscaling API integration
+├── rules.json         # Network rules (Referer stripping)
+└── icons/             # Extension icons
+```
 
 ## Permissions
 
-- `contextMenus` - Create right-click menu item
-- `activeTab` - Access current tab
-- `scripting` - Inject content script
-- `declarativeNetRequest` - Modify request headers
+| Permission | Purpose |
+|------------|---------|
+| `contextMenus` | Right-click menu items |
+| `activeTab` | Access current tab for extraction |
+| `scripting` | Inject content script on demand |
+| `storage` | Store user API key preferences |
+| `declarativeNetRequest` | Strip Referer header for cross-origin images |
 
-## Supported Google Domains
+## Configuration
 
-Works on 30+ Google country domains including:
+### Custom API Key
+The extension includes a default API key for convenience. To use your own:
+
+1. Get an API key from [Claid.ai](https://claid.ai) (free tier available)
+2. In Upscale Studio, the extension will use stored keys if configured
+3. Supported providers: Claid.ai, Replicate, fal.ai, DeepAI
+
+## Supported Domains
+
+Works on 30+ Google country domains:
 - google.com, google.co.uk, google.de, google.fr, google.co.jp
 - google.com.au, google.co.in, google.com.br, google.ca
-- And many more...
+- And more...
+
+## Known Limitations
+
+- **CORS**: Some images may fail to load due to cross-origin restrictions
+- **Google DOM**: Extraction may break if Google significantly changes their image search UI
+- **API Credits**: Upscaling requires API credits (default key has limited quota)
+
+## Security
+
+- XSS prevention via `escapeHtml()` for all user-facing content
+- No data collection or external analytics
+- API keys stored locally via `chrome.storage.sync`
+- Referer headers stripped to prevent tracking
 
 ## Contributing
 
-Contributions welcome! To debug:
-
-1. Open Google Images
-2. Open DevTools (F12) → Console
-3. Right-click a thumbnail → "Open with HiRes"
-4. Check `[HiRes]` logs for extraction path used
+1. Fork the repository
+2. Create a feature branch
+3. Open DevTools Console and look for `[HiRes]` logs when debugging
+4. Submit a PR with clear description
 
 ## License
 
 MIT
+
+---
+
+Built with vanilla JS. No frameworks, no build step, no bloat.

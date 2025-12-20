@@ -64,6 +64,9 @@
       sourceFormat.textContent = getImageFormat(url);
 
       processBtn.disabled = false;
+
+      // Auto-start upscaling at 2x
+      handleProcess();
     };
 
     img.onerror = function() {
@@ -85,7 +88,7 @@
       btn.addEventListener('click', () => {
         scaleButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        selectedScale = parseInt(btn.dataset.scale);
+        selectedScale = parseInt(btn.dataset.scale, 10);
       });
     });
   }
@@ -128,60 +131,152 @@
   }
 
   /**
+   * Convert image URL to Blob for upload
+   */
+  async function imageUrlToBlob(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to convert image to blob'));
+          }
+        }, 'image/png');
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image for conversion'));
+      img.src = url;
+    });
+  }
+
+  /**
    * Upscale using Claid.ai API (Recommended for fidelity)
    * Best for: photos, products, faces - preserves textures without hallucinations
+   * Uses multipart upload endpoint since Claid doesn't accept base64 in JSON input
    */
   async function upscaleWithClaid(imageUrl, scale, apiKey) {
-    const response = await fetch('https://api.claid.ai/v1-beta1/image/edit', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        input: imageUrl,
-        operations: {
-          resizing: {
-            width: `x${scale}`,
-            fit: 'bounds'
-          },
-          upscaling: 'smart_enhance'
+    // Calculate percentage for scaling (2x = 200%, 4x = 400%)
+    const scalePercent = `${scale * 100}%`;
+
+    // Build the operations config
+    const operationsData = {
+      operations: {
+        restorations: {
+          upscale: 'smart_enhance'
         },
-        output: {
-          format: 'png'
+        resizing: {
+          width: scalePercent,
+          height: scalePercent,
+          fit: 'bounds'
         }
-      })
-    });
-
-    const result = await response.json();
-    console.log('Claid API response:', result);
-
-    // Handle errors
-    if (!response.ok || result.error) {
-      const errMsg = result.error?.message || result.message || '';
-      if (errMsg.includes('credit') || errMsg.includes('limit') || response.status === 402) {
-        throw new Error('Out of credits! Visit claid.ai to add more.');
+      },
+      output: {
+        format: 'png'
       }
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('Invalid API key. Check your Claid.ai key.');
+    };
+
+    // Try multipart upload first (works with any image source)
+    try {
+      const imageBlob = await imageUrlToBlob(imageUrl);
+      console.log('Converted image to blob for upload');
+
+      const formData = new FormData();
+      formData.append('file', imageBlob, 'image.png');
+      formData.append('data', JSON.stringify(operationsData));
+
+      const response = await fetch('https://api.claid.ai/v1/image/edit/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      console.log('Claid API response:', result);
+
+      // Handle errors
+      if (!response.ok || result.error) {
+        const errMsg = result.error?.message || result.message || '';
+        if (errMsg.includes('credit') || errMsg.includes('limit') || response.status === 402) {
+          throw new Error('Out of credits! Visit claid.ai to add more.');
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid API key. Check your Claid.ai key.');
+        }
+        throw new Error(errMsg || `Claid.ai error (${response.status})`);
       }
-      throw new Error(errMsg || `Claid.ai error (${response.status})`);
+
+      // Extract URL from response - handle different response formats
+      const outputUrl = result.data?.output?.tmp_url ||
+                        result.data?.output?.url ||
+                        result.output?.tmp_url ||
+                        result.output?.url ||
+                        result.tmp_url ||
+                        result.url;
+
+      if (!outputUrl) {
+        console.error('Unexpected API response structure:', result);
+        throw new Error('Unexpected API response format');
+      }
+
+      return { url: outputUrl, isDemo: false };
+
+    } catch (uploadError) {
+      // If blob conversion fails (CORS), try direct URL approach
+      console.warn('Multipart upload failed, trying direct URL:', uploadError);
+
+      const response = await fetch('https://api.claid.ai/v1/image/edit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          input: imageUrl,
+          ...operationsData
+        })
+      });
+
+      const result = await response.json();
+      console.log('Claid API response (URL mode):', result);
+
+      if (!response.ok || result.error) {
+        const errMsg = result.error?.message || result.message || '';
+        if (errMsg.includes('credit') || errMsg.includes('limit') || response.status === 402) {
+          throw new Error('Out of credits! Visit claid.ai to add more.');
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid API key. Check your Claid.ai key.');
+        }
+        throw new Error(errMsg || `Claid.ai error (${response.status})`);
+      }
+
+      const outputUrl = result.data?.output?.tmp_url ||
+                        result.data?.output?.url ||
+                        result.output?.tmp_url ||
+                        result.output?.url ||
+                        result.tmp_url ||
+                        result.url;
+
+      if (!outputUrl) {
+        console.error('Unexpected API response structure:', result);
+        throw new Error('Unexpected API response format');
+      }
+
+      return { url: outputUrl, isDemo: false };
     }
-
-    // Extract URL from response - handle different response formats
-    const outputUrl = result.data?.output?.tmp_url ||
-                      result.data?.output?.url ||
-                      result.output?.tmp_url ||
-                      result.output?.url ||
-                      result.tmp_url ||
-                      result.url;
-
-    if (!outputUrl) {
-      console.error('Unexpected API response structure:', result);
-      throw new Error('Unexpected API response format');
-    }
-
-    return { url: outputUrl, isDemo: false };
   }
 
   /**

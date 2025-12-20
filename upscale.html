@@ -18,9 +18,9 @@
       --text-primary: #f0f0f2;
       --text-secondary: #8a8a8f;
       --text-tertiary: #5a5a5f;
-      --accent: #00e5cc;
-      --accent-dim: #00b3a0;
-      --accent-glow: rgba(0, 229, 204, 0.15);
+      --accent: #3b82f6;
+      --accent-dim: #2563eb;
+      --accent-glow: rgba(59, 130, 246, 0.15);
       --warning: #ffb347;
       --error: #ff6b6b;
       --success: #4ade80;
@@ -80,15 +80,13 @@
     .logo {
       width: 36px;
       height: 36px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
       border-radius: 8px;
-      display: grid;
-      place-items: center;
-      font-family: 'DM Mono', monospace;
-      font-weight: 500;
-      font-size: 13px;
-      color: var(--bg-deep);
-      letter-spacing: -0.5px;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .brand-text {
@@ -208,7 +206,7 @@
     .badge-enhanced {
       background: var(--accent-glow);
       color: var(--accent);
-      border: 1px solid rgba(0, 229, 204, 0.25);
+      border: 1px solid rgba(59, 130, 246, 0.25);
     }
 
     /* Image viewport */
@@ -609,7 +607,7 @@
   <div class="app">
     <header class="header">
       <div class="brand">
-        <div class="logo">HR</div>
+        <div class="logo"><img src="icons/icon48.png" alt="HiRes"></div>
         <div class="brand-text">
           <span class="brand-name">HiRes</span>
           <span class="brand-sub">Upscale Studio</span>
@@ -670,7 +668,7 @@
           <div class="placeholder" id="outputPlaceholder">
             <div class="placeholder-icon">⚡</div>
             <div class="placeholder-text">
-              Select scale factor and<br>click "Process Image"
+              Waiting for image...
             </div>
           </div>
 
@@ -682,7 +680,7 @@
             </div>
             <div class="loading-info">
               <div class="loading-title">Enhancing image...</div>
-              <div class="loading-detail">Using Real-ESRGAN neural network</div>
+              <div class="loading-detail">AI-powered upscaling via Claid.ai</div>
             </div>
           </div>
 
