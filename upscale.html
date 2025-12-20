@@ -212,6 +212,8 @@
     /* Image viewport */
     .viewport {
       flex: 1;
+      min-height: 0;
+      overflow: auto;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -247,7 +249,7 @@
 
     .image-frame img {
       max-width: 100%;
-      max-height: calc(100vh - 280px);
+      max-height: calc(100vh - 380px);
       object-fit: contain;
       border-radius: 4px;
       opacity: 0;
@@ -375,7 +377,7 @@
 
     /* Panel footer */
     .panel-footer {
-      padding: 20px 28px;
+      padding: 20px 28px 40px;
       border-top: 1px solid var(--border-subtle);
       background: var(--bg-elevated);
       flex-shrink: 0;
@@ -407,7 +409,7 @@
     .controls {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .scale-controls {
@@ -598,7 +600,15 @@
       }
 
       .image-frame img {
-        max-height: calc(50vh - 180px);
+        max-height: calc(50vh - 200px);
+      }
+
+      .panel-footer {
+        padding: 16px 20px 32px;
+      }
+
+      .controls {
+        gap: 12px;
       }
     }
   </style>
