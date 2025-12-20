@@ -44,17 +44,7 @@
       overflow-x: hidden;
     }
 
-    /* Subtle noise texture */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      opacity: 0.03;
-      pointer-events: none;
-      z-index: 1000;
-    }
-
+    
     .container {
       max-width: 1100px;
       margin: 0 auto;
@@ -129,10 +119,10 @@
     .hero::before {
       content: '';
       position: absolute;
-      width: 700px;
-      height: 700px;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-      top: 15%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+      top: 20%;
       left: 50%;
       transform: translateX(-50%);
       pointer-events: none;
@@ -477,22 +467,7 @@
       box-shadow: 0 0 40px rgba(59, 130, 246, 0.1);
     }
 
-    .pricing-card.featured::before {
-      content: 'Popular';
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--accent);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 100px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
+    
     .pricing-tier {
       font-family: 'DM Mono', monospace;
       font-size: 12px;
@@ -666,7 +641,6 @@
         <span>HiRes</span>
       </div>
       <nav class="header-links">
-        <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
       </nav>
     </div>
@@ -758,33 +732,7 @@
       </div>
     </section>
 
-    <!-- Quick Features -->
-    <section class="features" id="features">
-      <div class="container">
-        <div class="section-header">
-          <h2>Why HiRes?</h2>
-          <p>Built for designers, researchers, and anyone who needs quality images</p>
-        </div>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">0</div>
-            <h3>Zero Config</h3>
-            <p>Install and go. No API keys, no settings to configure. Just works out of the box.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">HD</div>
-            <h3>True Resolution</h3>
-            <p>See actual image dimensions before downloading. No more surprises with tiny files.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">AI</div>
-            <h3>Smart Enhancement</h3>
-            <p>Professional AI upscaling that actually works. Enhance details, not just pixels.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
+    
     <!-- Pricing -->
     <section class="pricing" id="pricing">
       <div class="container">
