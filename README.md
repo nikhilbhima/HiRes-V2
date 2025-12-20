@@ -83,13 +83,11 @@ hires/
 
 ## Configuration
 
-### API Key Setup (Required for Upscaling)
-The extension uses a BYOK (Bring Your Own Key) model - you provide your own API key:
+### Custom API Key (Optional)
+The extension works out of the box. To use your own API key:
 
-1. Sign up at [Claid.ai](https://claid.ai) (free tier available)
-2. Copy your API key from the dashboard
-3. In Upscale Studio, click "Configure API" when prompted
-4. Enter: `claid:your_api_key`
+1. Get an API key from [Claid.ai](https://claid.ai) or other supported providers
+2. The extension will use stored keys if configured
 
 **Supported providers:** Claid.ai (recommended), Replicate, fal.ai, DeepAI
 
@@ -104,7 +102,7 @@ Works on 30+ Google country domains:
 
 - **CORS**: Some images may fail to load due to cross-origin restrictions
 - **Google DOM**: Extraction may break if Google significantly changes their image search UI
-- **API Key**: Upscaling requires your own API key (free tiers available)
+- **API Credits**: Default API key has limited quota - consider using your own key for heavy usage
 
 ## Security
 

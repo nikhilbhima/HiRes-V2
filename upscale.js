@@ -65,16 +65,8 @@
 
       processBtn.disabled = false;
 
-      // Check if API key is configured before auto-starting
-      chrome.storage.sync.get(['apiKey'], (config) => {
-        if (config.apiKey) {
-          // Auto-start upscaling at 2x
-          handleProcess();
-        } else {
-          // Show config notice
-          showApiKeyRequired();
-        }
-      });
+      // Auto-start upscaling at 2x
+      handleProcess();
     };
 
     img.onerror = function() {
@@ -101,18 +93,18 @@
     });
   }
 
+  // Default API config
+  const DEFAULT_API = 'claid';
+  const DEFAULT_KEY = 'b176fab7d37647a1bb785e0ee2193540';
+
   /**
    * Upscale image using API
    */
   async function upscaleImage(imageUrl, scale) {
-    // Check for stored API configuration
+    // Check for stored API configuration, fall back to built-in key
     const config = await chrome.storage.sync.get(['upscaleApi', 'apiKey']);
-    const api = config.upscaleApi || 'claid';
-    const key = config.apiKey;
-
-    if (!key) {
-      throw new Error('API key required. Click "Configure API" below to set up.');
-    }
+    const api = config.upscaleApi || DEFAULT_API;
+    const key = config.apiKey || DEFAULT_KEY;
 
     // API integration
     switch (api) {
@@ -428,19 +420,6 @@
   }
 
   /**
-   * Show API key required notice
-   */
-  function showApiKeyRequired() {
-    configNotice.style.display = 'block';
-    configNotice.innerHTML = `
-      <strong>API Key Required</strong><br>
-      Get a free key from <a href="https://claid.ai" target="_blank" class="config-link">claid.ai</a>,
-      then <a href="#" id="configureLink" class="config-link">configure it here</a>.
-    `;
-    document.getElementById('configureLink')?.addEventListener('click', showApiConfig);
-  }
-
-  /**
    * Show API configuration prompt
    */
   function showApiConfig(e) {
@@ -448,31 +427,27 @@
 
     const input = prompt(
       'Configure Upscaling API\n\n' +
-      'Recommended: Claid.ai (free tier available)\n' +
-      '1. Sign up at claid.ai\n' +
-      '2. Get your API key from dashboard\n' +
-      '3. Enter below\n\n' +
-      'Format: claid:your_api_key\n\n' +
-      'Other providers: replicate, fal, deepai'
+      'Supported services:\n' +
+      '• Claid.ai (claid.ai) - Recommended\n' +
+      '• Replicate (replicate.com)\n' +
+      '• fal.ai (fal.ai)\n' +
+      '• DeepAI (deepai.org)\n\n' +
+      'Format: service:api_key\n' +
+      'Example: claid:your_api_key'
     );
 
     if (input && input.includes(':')) {
       const [api, ...keyParts] = input.split(':');
-      const key = keyParts.join(':').trim(); // Handle keys with colons
+      const key = keyParts.join(':').trim();
       chrome.storage.sync.set({
         upscaleApi: api.trim().toLowerCase(),
         apiKey: key
       }, () => {
+        configNotice.style.display = 'block';
         configNotice.innerHTML = `
           <strong style="color: var(--success)">API Configured!</strong>
-          Using ${api.trim()} for upscaling. <a href="#" id="reconfigureLink" class="config-link">Change</a>
+          Using ${api.trim()} for upscaling.
         `;
-        document.getElementById('reconfigureLink')?.addEventListener('click', showApiConfig);
-
-        // Auto-start now that key is configured
-        if (originalImageUrl && !upscaledImageUrl) {
-          handleProcess();
-        }
       });
     }
   }
