@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HiRes",
   "version": "1.0.0",
-  "description": "Open full-resolution images directly from Google Images thumbnails with one click.",
+  "description": "Extract high-res images from Google Images and upscale any image with AI.",
   "permissions": [
     "contextMenus",
     "activeTab",
