@@ -22,6 +22,8 @@
       --text-tertiary: #5a5a5f;
       --accent: #3b82f6;
       --accent-dim: #2563eb;
+      --success: #4ade80;
+      --warning: #fbbf24;
     }
 
     * {
@@ -120,17 +122,17 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 120px 24px 80px;
+      padding: 140px 24px 100px;
       position: relative;
     }
 
     .hero::before {
       content: '';
       position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
-      top: 20%;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+      top: 15%;
       left: 50%;
       transform: translateX(-50%);
       pointer-events: none;
@@ -139,6 +141,7 @@
     .hero-content {
       position: relative;
       z-index: 1;
+      max-width: 720px;
     }
 
     .badge {
@@ -158,7 +161,7 @@
     .badge-dot {
       width: 6px;
       height: 6px;
-      background: #4ade80;
+      background: var(--success);
       border-radius: 50%;
       animation: pulse 2s ease-in-out infinite;
     }
@@ -169,7 +172,7 @@
     }
 
     h1 {
-      font-size: clamp(48px, 8vw, 72px);
+      font-size: clamp(44px, 7vw, 68px);
       font-weight: 700;
       letter-spacing: -2px;
       line-height: 1.1;
@@ -186,8 +189,32 @@
     .hero-subtitle {
       font-size: 18px;
       color: var(--text-secondary);
-      max-width: 480px;
-      margin: 0 auto 48px;
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .cta-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .coming-soon-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 100px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--warning);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .cta-group {
@@ -216,11 +243,8 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
       color: #fff;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.3);
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
     .btn-secondary {
@@ -232,6 +256,7 @@
     .btn-secondary:hover {
       background: var(--bg-subtle);
       color: var(--text);
+      transform: translateY(-2px);
     }
 
     .btn svg {
@@ -239,57 +264,112 @@
       height: 20px;
     }
 
-    /* Features */
-    .features {
-      padding: 120px 24px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-    }
-
-    .feature-card {
+    /* Features Detail */
+    .features-detail {
+      padding: 100px 24px;
       background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      transition: border-color 0.2s;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
     }
 
-    .feature-card:hover {
-      border-color: var(--text-tertiary);
+    .feature-detail-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      max-width: 1000px;
+      margin: 0 auto;
     }
 
-    .feature-icon {
-      width: 48px;
-      height: 48px;
+    .feature-detail-row:not(:last-child) {
+      margin-bottom: 120px;
+    }
+
+    .feature-detail-row.reverse {
+      direction: rtl;
+    }
+
+    .feature-detail-row.reverse > * {
+      direction: ltr;
+    }
+
+    .feature-detail-content {
+      max-width: 440px;
+    }
+
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
       background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       margin-bottom: 20px;
     }
 
-    .feature-card h3 {
-      font-size: 18px;
+    .feature-detail-content h3 {
+      font-size: 32px;
       font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .feature-detail-content p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+
+    .feature-list {
+      list-style: none;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
       margin-bottom: 12px;
     }
 
-    .feature-card p {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.7;
+    .feature-list li svg {
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+      flex-shrink: 0;
+      margin-top: 2px;
     }
 
-    /* How it works */
-    .how-it-works {
-      padding: 80px 24px 120px;
+    .feature-visual {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .feature-visual-placeholder {
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
+    /* Features Grid */
+    .features {
+      padding: 100px 24px;
     }
 
     .section-header {
@@ -310,42 +390,143 @@
       margin: 0 auto;
     }
 
-    .steps {
+    .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 32px;
-      max-width: 900px;
-      margin: 0 auto;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
     }
 
-    .step {
-      text-align: center;
+    .feature-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.2s;
     }
 
-    .step-number {
-      width: 40px;
-      height: 40px;
+    .feature-card:hover {
+      border-color: var(--text-tertiary);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
       background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 50%;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'DM Mono', monospace;
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: 500;
       color: var(--accent);
-      margin: 0 auto 16px;
+      margin-bottom: 20px;
     }
 
-    .step h4 {
-      font-size: 16px;
+    .feature-card h3 {
+      font-size: 18px;
       font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* Pricing */
+    .pricing {
+      padding: 100px 24px;
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border);
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.1);
+    }
+
+    .pricing-card.featured::before {
+      content: 'Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pricing-tier {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
       margin-bottom: 8px;
     }
 
-    .step p {
+    .pricing-price {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: -2px;
+      margin-bottom: 8px;
+    }
+
+    .pricing-price span {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+    }
+
+    .pricing-desc {
       font-size: 14px;
       color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 32px;
+    }
+
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .pricing-features li svg {
+      width: 16px;
+      height: 16px;
+      color: var(--success);
     }
 
     /* Footer */
@@ -368,11 +549,6 @@
       gap: 24px;
     }
 
-    .footer-left span {
-      font-size: 13px;
-      color: var(--text-tertiary);
-    }
-
     .footer-links {
       display: flex;
       gap: 24px;
@@ -384,15 +560,11 @@
       transition: color 0.2s;
       display: flex;
       align-items: center;
+      font-size: 14px;
     }
 
     .footer-links a:hover {
       color: var(--text);
-    }
-
-    .footer-links svg {
-      width: 20px;
-      height: 20px;
     }
 
     .social-links {
@@ -416,13 +588,32 @@
     }
 
     /* Responsive */
+    @media (max-width: 900px) {
+      .feature-detail-row {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .feature-detail-row.reverse {
+        direction: ltr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 640px) {
       .header-links {
         display: none;
       }
 
       h1 {
-        font-size: 40px;
+        font-size: 36px;
         letter-spacing: -1px;
       }
 
@@ -432,11 +623,16 @@
 
       .cta-group {
         flex-direction: column;
+        width: 100%;
       }
 
       .btn {
         width: 100%;
         justify-content: center;
+      }
+
+      .feature-detail-content h3 {
+        font-size: 24px;
       }
 
       footer .container {
@@ -459,6 +655,7 @@
       </div>
       <nav class="header-links">
         <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
         <a href="https://github.com/nikhilbhima/HiRes" target="_blank">GitHub</a>
       </nav>
     </div>
@@ -473,64 +670,167 @@
         </div>
         <h1>High-Res Images.<br><span>Instantly.</span></h1>
         <p class="hero-subtitle">
-          Extract full-resolution images from Google Images and upscale any image with AI-powered enhancement.
+          Stop settling for compressed thumbnails. Extract original full-resolution images from Google Images and upscale any image with professional AI enhancement.
         </p>
-        <div class="cta-group">
-          <a href="https://chrome.google.com/webstore/detail/ngkhehfbghmapdfbklabcbdahphohifk" class="btn btn-primary" target="_blank">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-            Add to Chrome
-          </a>
-          <a href="https://github.com/nikhilbhima/HiRes" class="btn btn-secondary" target="_blank">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            View Source
-          </a>
+        <div class="cta-wrapper">
+          <span class="coming-soon-tag">Coming Soon</span>
+          <div class="cta-group">
+            <span class="btn btn-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+              Add to Chrome
+            </span>
+            <a href="https://github.com/nikhilbhima/HiRes" class="btn btn-secondary" target="_blank">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              View Source
+            </a>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- Feature Detail: Open with HiRes -->
+    <section class="features-detail">
+      <div class="container">
+        <div class="feature-detail-row">
+          <div class="feature-detail-content">
+            <span class="feature-tag">One-Click Access</span>
+            <h3>Open with HiRes</h3>
+            <p>
+              No more right-clicking, inspecting elements, or hunting for the original image URL.
+              When browsing Google Images, HiRes shows you the actual resolution of each image and
+              lets you open the original full-quality source in a new tab with a single click.
+            </p>
+            <ul class="feature-list">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                See real dimensions on every thumbnail
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Bypass Google's compressed previews instantly
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Works automatically — no extra steps needed
+              </li>
+            </ul>
+          </div>
+          <div class="feature-visual">
+            <div class="feature-visual-placeholder">
+              Resolution badges on<br>Google Images thumbnails
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-detail-row reverse">
+          <div class="feature-detail-content">
+            <span class="feature-tag">AI-Powered</span>
+            <h3>Upscale Studio</h3>
+            <p>
+              Need higher resolution than what's available? Right-click any image on any website
+              and send it to Upscale Studio. Our AI-powered enhancement (via Claid.ai) increases
+              resolution by 2x or 4x while preserving details and reducing artifacts.
+            </p>
+            <ul class="feature-list">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Professional-grade AI upscaling
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Clean, minimal interface
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Download enhanced images instantly
+              </li>
+            </ul>
+          </div>
+          <div class="feature-visual">
+            <div class="feature-visual-placeholder">
+              Side-by-side comparison<br>Original → 4x Upscaled
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Features -->
     <section class="features" id="features">
       <div class="container">
+        <div class="section-header">
+          <h2>Why HiRes?</h2>
+          <p>Built for designers, researchers, and anyone who needs quality images</p>
+        </div>
         <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">HD</div>
-            <h3>High-Res Extraction</h3>
-            <p>Automatically reveals original, full-resolution images on Google Images. Bypass compressed thumbnails and get the real source images with dimensions displayed.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">AI</div>
-            <h3>AI Upscaling</h3>
-            <p>Right-click any image on the web to upscale it with Claid.ai's professional-grade AI. Choose 2x or 4x enhancement and download instantly.</p>
-          </div>
           <div class="feature-card">
             <div class="feature-icon">0</div>
             <h3>Zero Config</h3>
-            <p>Works out of the box with no setup required. Just install and browse Google Images as usual. Minimal, fast, and privacy-focused.</p>
+            <p>Install and go. No API keys, no settings to configure. Just works out of the box.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">HD</div>
+            <h3>True Resolution</h3>
+            <p>See actual image dimensions before downloading. No more surprises with tiny files.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">AI</div>
+            <h3>Smart Enhancement</h3>
+            <p>Professional AI upscaling that actually works. Enhance details, not just pixels.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="how-it-works">
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
       <div class="container">
         <div class="section-header">
-          <h2>How It Works</h2>
-          <p>Get high-quality images in seconds</p>
+          <h2>Simple Pricing</h2>
+          <p>Start free, upgrade when you need more</p>
         </div>
-        <div class="steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <h4>Install Extension</h4>
-            <p>Add HiRes to Chrome with one click</p>
+        <div class="pricing-cards">
+          <div class="pricing-card">
+            <div class="pricing-tier">Free</div>
+            <div class="pricing-price">$0</div>
+            <p class="pricing-desc">Perfect for casual use</p>
+            <ul class="pricing-features">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Unlimited high-res extraction
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Resolution badges on Google Images
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                10 AI upscales per month
+              </li>
+            </ul>
           </div>
-          <div class="step">
-            <div class="step-number">2</div>
-            <h4>Browse Images</h4>
-            <p>Use Google Images normally — see resolution badges</p>
-          </div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <h4>Upscale Anything</h4>
-            <p>Right-click any image to enhance with AI</p>
+          <div class="pricing-card featured">
+            <div class="pricing-tier">Pro</div>
+            <div class="pricing-price">$5<span>/month</span></div>
+            <p class="pricing-desc">For power users</p>
+            <ul class="pricing-features">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Everything in Free
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Unlimited AI upscales
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                4x upscaling (vs 2x free)
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Priority processing
+              </li>
+            </ul>
           </div>
         </div>
       </div>
