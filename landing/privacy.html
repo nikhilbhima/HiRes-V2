@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — HiRes</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="icon16.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
+  <link rel="apple-touch-icon" href="icon128.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #08080a;
+      --bg-subtle: #0d0d10;
+      --bg-elevated: #141418;
+      --border: #1c1c1f;
+      --text: #f0f0f2;
+      --text-secondary: #8a8a8f;
+      --text-tertiary: #5a5a5f;
+      --accent: #3b82f6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Instrument Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+      background: rgba(8, 8, 10, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    header .container {
+      max-width: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .logo span {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    main {
+      padding: 140px 24px 80px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .updated {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.8;
+    }
+
+    ul, ol {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      line-height: 1.7;
+    }
+
+    strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    td {
+      color: var(--text-secondary);
+    }
+
+    code {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      background: var(--bg-elevated);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    footer {
+      padding: 48px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer .container {
+      max-width: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 28px;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="index.html" class="logo">
+        <img src="icon48.png" alt="HiRes">
+        <span>HiRes</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: December 2024</p>
+
+      <h2>Overview</h2>
+      <p>HiRes is a Chrome extension that helps users access high-resolution images from Google Images and upscale images using AI.</p>
+
+      <h2>Data Collection</h2>
+      <p><strong>We do not collect any personal data.</strong></p>
+
+      <h3>What the extension accesses:</h3>
+      <ol>
+        <li><strong>Image URLs</strong>: When you right-click an image and select "Open with HiRes" or "Upscale with HiRes", the extension accesses the image URL to process your request. This data is not stored or transmitted to our servers.</li>
+        <li><strong>Local Storage</strong>: The extension uses Chrome's local storage (<code>chrome.storage.sync</code>) to save your preferences (such as custom API keys if configured). This data stays on your device and syncs only through your Chrome account.</li>
+      </ol>
+
+      <h3>Third-Party Services</h3>
+      <p>When using the "Upscale with HiRes" feature, your images are sent to third-party upscaling services (Claid.ai by default). Please refer to their respective privacy policies:</p>
+      <ul>
+        <li><a href="https://claid.ai/privacy" target="_blank">Claid.ai Privacy Policy</a></li>
+      </ul>
+
+      <h2>Permissions Explained</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Permission</th>
+            <th>Why We Need It</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>contextMenus</code></td>
+            <td>To add right-click menu options</td>
+          </tr>
+          <tr>
+            <td><code>activeTab</code></td>
+            <td>To access the current page when you invoke the extension</td>
+          </tr>
+          <tr>
+            <td><code>scripting</code></td>
+            <td>To extract high-resolution image URLs from Google Images</td>
+          </tr>
+          <tr>
+            <td><code>storage</code></td>
+            <td>To save your preferences locally</td>
+          </tr>
+          <tr>
+            <td><code>declarativeNetRequest</code></td>
+            <td>To remove Referer headers that block image loading</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Data Security</h2>
+      <ul>
+        <li>No analytics or tracking</li>
+        <li>No data collection servers</li>
+        <li>No user accounts required</li>
+        <li>All processing happens locally or through the upscaling API you choose</li>
+      </ul>
+
+      <h2>Changes to This Policy</h2>
+      <p>We may update this privacy policy from time to time. Any changes will be reflected in this document with an updated date.</p>
+
+      <h2>Contact</h2>
+      <p>For questions about this privacy policy, please open an issue at:<br>
+      <a href="https://github.com/nikhilbhima/HiRes/issues" target="_blank">github.com/nikhilbhima/HiRes/issues</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <a href="index.html" class="logo">
+        <img src="icon48.png" alt="HiRes">
+        <span>HiRes</span>
+      </a>
+      <nav class="footer-links">
+        <a href="index.html">Back to Home</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

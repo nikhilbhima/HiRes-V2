@@ -356,6 +356,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
+    }
+
+    .feature-visual-image {
+      padding: 0;
+    }
+
+    .feature-visual-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 16px;
     }
 
     .feature-visual-placeholder {
@@ -713,10 +725,8 @@
               </li>
             </ul>
           </div>
-          <div class="feature-visual">
-            <div class="feature-visual-placeholder">
-              Resolution badges on<br>Google Images thumbnails
-            </div>
+          <div class="feature-visual feature-visual-image">
+            <img src="open-with-hires.png" alt="HiRes context menu on Google Images">
           </div>
         </div>
 
@@ -744,10 +754,8 @@
               </li>
             </ul>
           </div>
-          <div class="feature-visual">
-            <div class="feature-visual-placeholder">
-              Side-by-side comparison<br>Original → 4x Upscaled
-            </div>
+          <div class="feature-visual feature-visual-image">
+            <img src="upscale-studio.svg" alt="Upscale Studio comparison showing original and 4x upscaled image">
           </div>
         </div>
       </div>
@@ -852,7 +860,7 @@
         </div>
       </div>
       <nav class="footer-links">
-        <a href="https://github.com/nikhilbhima/HiRes/blob/main/PRIVACY_POLICY.md" target="_blank">Privacy Policy</a>
+        <a href="privacy.html">Privacy Policy</a>
       </nav>
     </div>
   </footer>
